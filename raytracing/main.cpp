@@ -83,7 +83,6 @@ int main(int argc, char* argv[]) {
     }
 
     /*std::vector<std::thread> threads(H);
-
     for (int i = 0; i < H; i++) {
         threads[i] = std::thread(&MultiThreadFuncRender, raytracer, W, i);
     }

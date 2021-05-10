@@ -38,7 +38,7 @@ int TraceRay(Raytracer& tracer, Ray& in, Ray& refl, Ray& refr)
             if (primitive->GetMaterial()->diff > EPS || primitive->GetMaterial()->spec > EPS) {
                 in.myColor += tracer.CalnDiffusion(collide_primitive);
             }
-            /*if (primitive->GetMaterial()->refl > EPS) {
+            if (primitive->GetMaterial()->refl > EPS) {
                 if (tracer.CalnReflection(collide_primitive, in.V, refl)) {
                     ret |= REFLE_BIT;
                 }
@@ -47,7 +47,7 @@ int TraceRay(Raytracer& tracer, Ray& in, Ray& refl, Ray& refr)
                 if (tracer.CalnRefraction(collide_primitive, in.V, refr)) {
                     ret |= REFRA_BIT;
                 }
-            }*/
+            }
         }
     }
     // nothing there, just background
@@ -86,10 +86,10 @@ void Render(Raytracer& tracer, int i, int j)
                     int res = TraceRay(tracer, *rayIn, *rayRefl, *rayRefr);
                     // go on tracing
                     if (res != 0) {
-                        if (res | REFLE_BIT) {
+                        if (res & REFLE_BIT) {
                             stack.push_back(rayRefl);
                         }
-                        if (res | REFRA_BIT) {
+                        if (res & REFRA_BIT) {
                             stack.push_back(rayRefr);
                         }
                     }
