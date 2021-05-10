@@ -35,7 +35,7 @@ public:
     virtual bool IsPointLight() = 0;
     virtual void Input( std::string , std::stringstream& );
     virtual Vector3 GetO() = 0;
-    virtual double CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) = 0;
+    virtual float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) = 0;
     virtual Primitive* CreateLightPrimitive() = 0;
 
 protected:
@@ -52,7 +52,7 @@ public:
     bool IsPointLight() { return true; }
     Vector3 GetO() { return O; }
     void Input( std::string , std::stringstream& );
-    double CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
+    float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
     Primitive* CreateLightPrimitive() { return nullptr; }
 
 protected:
@@ -70,7 +70,7 @@ public:
     bool IsPointLight() { return false; }
     Vector3 GetO() { return O; }
     void Input( std::string , std::stringstream& );
-    double CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
+    float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
     Primitive* CreateLightPrimitive();
 
 protected:
@@ -80,7 +80,7 @@ protected:
 class SphereLight : public Light
 {
     Vector3 O;
-    double R;
+    float R;
 public:
     SphereLight() : Light(), R(0) {}
     ~SphereLight() {}
@@ -88,7 +88,7 @@ public:
     bool IsPointLight() { return false; }
     Vector3 GetO() { return O; }
     void Input( std::string , std::stringstream& );
-    double CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
+    float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
     Primitive* CreateLightPrimitive();
 
 protected:
@@ -114,12 +114,12 @@ void PointLight::Input( std::string var , std::stringstream& fin ) {
     Light::Input( var , fin );
 }
 
-double PointLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
+float PointLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
     /* For point light, shade_quality is of no use: we don't need to sample. */
 
     // light ray from diffuse point to light source
     Vector3 V = O - C;
-    double dist = V.Module();
+    float dist = V.Module();
 
     // if light ray collide any object, light source produce no shade to diffuse light
     for (Primitive* now = primitive_head ; now != NULL ; now = now->GetNext()) {
@@ -141,7 +141,7 @@ void SquareLight::Input( std::string var , std::stringstream& fin ) {
     Light::Input( var , fin );
 }
 
-double SquareLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
+float SquareLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
     int shade = 0;
 
     // TODO: NEED TO IMPLEMENT
@@ -151,7 +151,7 @@ double SquareLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade
 
         // light ray from diffuse point to point light
         Vector3 V = randO - C;
-        double dist = V.Module();
+        float dist = V.Module();
 
         int addShade = 1;
         // if light ray collide any object before reaching the light, point light produce no shade to diffuse light
@@ -169,7 +169,7 @@ double SquareLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade
         }
         shade += addShade;
     }
-    return double(shade) / shade_quality;
+    return float(shade) / shade_quality;
 }
 
 Primitive* SquareLight::CreateLightPrimitive()
@@ -192,7 +192,7 @@ void SphereLight::Input( std::string var , std::stringstream& fin ) {
 
 // ==========================================
 
-double SphereLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
+float SphereLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
     int shade = 0;
 
     // TODO: NEED TO IMPLEMENT
@@ -202,7 +202,7 @@ double SphereLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade
 
         // light ray from diffuse point to point light
         Vector3 V = randO - C;
-        double dist = V.Module();
+        float dist = V.Module();
 
         int addShade = 1;
         // if light ray collide any object before reaching the light, point light produce no shade to diffuse light
@@ -221,7 +221,7 @@ double SphereLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade
         }
         shade += addShade;
     }
-    return double(shade) / shade_quality;
+    return float(shade) / shade_quality;
 }
 
 Primitive* SphereLight::CreateLightPrimitive()
@@ -237,13 +237,13 @@ Vector3 SphereLight::GetRandPointLight(const Vector3& crashPoint)
     Vector3 radiusV = toCrash.GetUnitVector() * R;
     Vector3 axisV = radiusV.GetAnVerticalVector();
 
-    double maxTheta = acos(R / toCrash.Module());
+    float maxTheta = acos(R / toCrash.Module());
     // theta in [-PI/2, PI/2)
-    double theta = (ran() * 2 - 1) * PI / 2;
+    float theta = (ran() * 2 - 1) * PI / 2;
     theta *= maxTheta / (PI / 2);
 
     // phi in [0, 2*PI)
-    double phi = ran() * 2 * PI;
+    float phi = ran() * 2 * PI;
     Vector3 ret = radiusV.Rotate(axisV, theta).Rotate(radiusV, phi);
     return O + ret;
 }

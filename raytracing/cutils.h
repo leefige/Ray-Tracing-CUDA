@@ -6,6 +6,8 @@
 namespace cg
 {
 
+#define TESTING
+
 constexpr int ERRNO_CUDA = 99;
 
 // limited version of checkCudaErrors from helper_cuda.h in CUDA examples

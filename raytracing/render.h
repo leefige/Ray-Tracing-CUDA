@@ -8,20 +8,32 @@
 #include "vector3.h"
 #include "raytracer.h"
 
+#include "cutils.h"
+
 namespace cg
 {
 
-void Render(Raytracer& tracer, int i, int j)
+__global__ void Render(Raytracer& tracer, const int max_i, const int max_j)
 {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if((i >= max_x) || (j >= max_y)) {
+        return;
+    }
+
+    Color pixel(float(i) / max_i, float(j) / max_j, 0.2);
+    Camera* camera = tracer.GetCamera();
+
+#ifndef TESTING
+    Color pixel;
     std::vector<Ray*> stack;
 
-    Camera* camera = tracer.GetCamera();
     Vector3 ray_O = camera->GetO();
-    Color pixel;
 
     for (int r = -NUM_RESAMPLE; r <= NUM_RESAMPLE; r++) {
         for (int c = -NUM_RESAMPLE; c <= NUM_RESAMPLE; c++) {
-            Vector3 ray_V = camera->Emit(i + (double)r / (NUM_RESAMPLE * 2 + 1), j + (double)c / (NUM_RESAMPLE * 2 + 1));
+            Vector3 ray_V = camera->Emit(i + (float)r / (NUM_RESAMPLE * 2 + 1), j + (float)c / (NUM_RESAMPLE * 2 + 1));
             Ray res(Vector3(), Vector3(), Color(1.0, 1.0, 1.0));
             Ray* origin = new Ray(ray_O, ray_V, Color(1.0, 1.0, 1.0), &res);
             stack.push_back(origin);
@@ -62,6 +74,7 @@ void Render(Raytracer& tracer, int i, int j)
             pixel += res.myColor / pow((NUM_RESAMPLE * 2 + 1), 2);
         }
     } /* for */
+#endif
     camera->SetColor(i, j, pixel);
 }
 

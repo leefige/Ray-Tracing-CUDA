@@ -17,7 +17,7 @@
 namespace cg
 {
 
-constexpr double SPEC_POWER = 20;
+constexpr float SPEC_POWER = 20;
 constexpr int MAX_DREFL_DEP = 2;
 constexpr int MAX_RAYTRACING_DEP = 10;
 constexpr int HASH_FAC = 7;
@@ -42,7 +42,7 @@ class Raytracer {
     Color GetBackgroundColor(const Vector3& V) const
     {
         auto direction = V.GetUnitVector();
-        double t = 0.5 * (direction.z + 1.0);
+        float t = 0.5 * (direction.z + 1.0);
         return background_color_bottom * (1.0 - t) + background_color_top * t;
     }
 
@@ -133,7 +133,7 @@ Color Raytracer::CalnDiffusion(const CollidePrimitive& collide_primitive)
     Color ret;
 
     for ( Light* light = light_head ; light != NULL ; light = light->GetNext() ) {
-        double shade = light->CalnShade(collide_primitive.C, scene.GetPrimitiveHead(), int(16 * camera->GetShadeQuality()));
+        float shade = light->CalnShade(collide_primitive.C, scene.GetPrimitiveHead(), int(16 * camera->GetShadeQuality()));
         if (shade < EPS) {
             continue;
         }
@@ -142,16 +142,16 @@ Color Raytracer::CalnDiffusion(const CollidePrimitive& collide_primitive)
 
         // R: light ray from diffuse point to the light
         Vector3 R = ( light->GetO() - collide_primitive.C ).GetUnitVector();
-        double dot = R.Dot( collide_primitive.N );
+        float dot = R.Dot( collide_primitive.N );
         if (dot > EPS) {
             // diffuse light
             if ( primitive->GetMaterial()->diff > EPS ) {
-                double diff = primitive->GetMaterial()->diff * dot * shade;
+                float diff = primitive->GetMaterial()->diff * dot * shade;
                 ret += color * light->GetColor() * diff;
             }
             // specular light
             if ( primitive->GetMaterial()->spec > EPS ) {
-                double spec = primitive->GetMaterial()->spec * pow( dot , SPEC_POWER ) * shade;
+                float spec = primitive->GetMaterial()->spec * pow( dot , SPEC_POWER ) * shade;
                 ret += color * light->GetColor() * spec;
             }
         }
@@ -214,7 +214,7 @@ bool Raytracer::CalnReflection(const CollidePrimitive& collide_primitive, const 
 bool Raytracer::CalnRefraction(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray)
 {
     Primitive* primitive = collide_primitive.collide_primitive;
-    double n = primitive->GetMaterial()->rindex;
+    float n = primitive->GetMaterial()->rindex;
     if (collide_primitive.front) {
         n = 1 / n;
     }

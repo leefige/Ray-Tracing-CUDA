@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.10)
 
-project(raytracing)
+project(raytracing LANGUAGES CXX CUDA)
 
 add_definitions(-DOLD_CXX)
 

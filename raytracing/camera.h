@@ -12,21 +12,23 @@
 #include "color.h"
 #include "bmp.h"
 
+#include "cutils.h"
+
 namespace cg
 {
 
 class Camera
 {
     Vector3 O , N , Dx , Dy;
-    double lens_W , lens_H;
+    float lens_W , lens_H;
     int W , H;
     Color** data;
-    double shade_quality;
-    double drefl_quality;
+    float shade_quality;
+    float drefl_quality;
     int max_photons;
     int emit_photons;
     int sample_photons;
-    double sample_dist;
+    float sample_dist;
 
 public:
     Camera();
@@ -36,14 +38,14 @@ public:
     int GetW() { return W; }
     int GetH() { return H; }
     void SetColor( int i , int j , Color color ) { data[i][j] = color; }
-    double GetShadeQuality() { return shade_quality; }
-    double GetDreflQuality() { return drefl_quality; }
+    float GetShadeQuality() { return shade_quality; }
+    float GetDreflQuality() { return drefl_quality; }
     int GetMaxPhotons() { return max_photons; }
     int GetEmitPhotons() { return emit_photons; }
     int GetSamplePhotons() { return sample_photons; }
-    double GetSampleDist() { return sample_dist; }
+    float GetSampleDist() { return sample_dist; }
 
-    Vector3 Emit( double i , double j );
+    Vector3 Emit( float i , float j );
     void Initialize();
     void Input( std::string var , std::stringstream& fin );
     void Output( Bmp* );
@@ -92,7 +94,7 @@ void Camera::Initialize()
     }
 }
 
-Vector3 Camera::Emit( double i , double j )
+Vector3 Camera::Emit( float i , float j )
 {
     return N + Dy * ( 2 * i / H - 1 ) + Dx * ( 2 * j / W - 1 );
 }

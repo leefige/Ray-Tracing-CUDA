@@ -79,7 +79,7 @@ public:
     void Initialize( int H , int W );
     void Input( std::string file );
     void Output( std::string file );
-    Color GetSmoothColor( double u , double v );
+    Color GetSmoothColor( float u , float v );
 };
 
 // =======================================================
@@ -185,14 +185,14 @@ void Bmp::SetColor( int i , int j , Color col )
     ima[i][j].blue = ( int ) ( col.b * 255 );
 }
 
-Color Bmp::GetSmoothColor( double u , double v )
+Color Bmp::GetSmoothColor( float u , float v )
 {
-    double U = ( u - floor( u ) ) * strInfo.biHeight;
-    double V = ( v - floor( v ) ) * strInfo.biWidth;
+    float U = ( u - floor( u ) ) * strInfo.biHeight;
+    float V = ( v - floor( v ) ) * strInfo.biWidth;
     int U1 = ( int ) floor( U - EPS  ) , U2 = U1 + 1;
     int V1 = ( int ) floor( V - EPS  ) , V2 = V1 + 1;
-    double rat_U = U2 - U;
-    double rat_V = V2 - V;
+    float rat_U = U2 - U;
+    float rat_V = V2 - V;
     if ( U1 < 0 ) U1 = strInfo.biHeight - 1; if ( U2 == strInfo.biHeight ) U2 = 0;
     if ( V1 < 0 ) V1 = strInfo.biWidth - 1; if ( V2 == strInfo.biWidth ) V2 = 0;
     Color ret;

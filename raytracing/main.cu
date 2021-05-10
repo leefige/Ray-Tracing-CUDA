@@ -18,14 +18,6 @@ namespace fs = std::filesystem;
 
 using namespace cg;
 
-void MultiThreadFuncRender(Raytracer* tracer, const int W, int i)
-{
-    srand(i);
-    for (int j = 0; j < W; j++) {
-        Render(*tracer, i, j);
-    }
-}
-
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         std::cout << "Usage: " << std::endl << argv[0] << " <input_file.txt> <output_file.bmp>" << std::endl;
@@ -52,12 +44,22 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    int tx = 8;
+    int ty = 8;
+
     Raytracer* raytracer = new Raytracer;
     raytracer->SetInput(inputFile);
     raytracer->SetOutput(outputFile);
 
     raytracer->CreateAll();
     int H = raytracer->GetH(), W = raytracer->GetW();
+
+    // Render our buffer
+    dim3 blocks(nx/tx+1,ny/ty+1);
+    dim3 threads(tx,ty);
+    render<<<blocks, threads>>>(fb, nx, ny);
+    checkCudaErrors(cudaGetLastError());
+    checkCudaErrors(cudaDeviceSynchronize());
 
 #ifdef _OPENMP
     omp_set_num_threads(raytracer->GetH());

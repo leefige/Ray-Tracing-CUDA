@@ -25,7 +25,7 @@ Output: 无
 Return: 若浮点数x为nan返回0，否则返回1
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
-int is_number(double x)
+int is_number(float x)
 {
     return (x == x);
 }
@@ -38,7 +38,7 @@ Output: 无
 Return: 若浮点数x为inf返回0，否则返回1
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
-int is_finite_number(double x)
+int is_finite_number(float x)
 {
     return (x >= -FLT_MAX && x <= FLT_MAX);
 }
@@ -51,12 +51,12 @@ Output: 方程的所有实数根x, 实数根的个数rootCount
 Return: 错误号
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
-UINT32 solve_quadratic_equation(double p[], double x[], int* rootCount)
+UINT32 solve_quadratic_equation(float p[], float x[], int* rootCount)
 {
     int i;
-    double a, b, c, delta, sqrtDelta;
-    const double ZERO = FLT_MIN;  // min normalized positive value（1.175494351e-38F）
-    // const double EPS = FLT_MIN;
+    float a, b, c, delta, sqrtDelta;
+    const float ZERO = FLT_MIN;  // min normalized positive value（1.175494351e-38F）
+    // const float EPS = FLT_MIN;
     UINT32 errNo = 0;
 
     *rootCount = 0;
@@ -128,14 +128,14 @@ Output: 方程的所有实数根x，实数根的个数rootCount
 Return: 错误号
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
-UINT32 solve_cubic_equation(double p[], double x[], int* rootCount)
+UINT32 solve_cubic_equation(float p[], float x[], int* rootCount)
 {
     int i;
-    double a, b, c, d, A, B, C, delta;
-    double Y1, Y2, Z1, Z2, K, parm[3], roots[2], theta, T;
-    const double ZERO = FLT_MIN;  // min normalized positive value（1.175494351e-38F）
-    // const double EPS = FLT_MIN;
-    const double CALCULATE_ERROR = 1.0e-7;
+    float a, b, c, d, A, B, C, delta;
+    float Y1, Y2, Z1, Z2, K, parm[3], roots[2], theta, T;
+    const float ZERO = FLT_MIN;  // min normalized positive value（1.175494351e-38F）
+    // const float EPS = FLT_MIN;
+    const float CALCULATE_ERROR = 1.0e-7;
     UINT32 errNo = 0;
 
     *rootCount = 0;
@@ -250,15 +250,15 @@ Output: 方程的所有实数根x,实数根的个数rootCount
 Return: 错误号
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
-UINT32 solve_quartic_equation(double p[], double x[], int* rootCount)
+UINT32 solve_quartic_equation(float p[], float x[], int* rootCount)
 {
-    double a, b, c, d, e;
-    double parm[4], roots[3];
-    double y, M, N;
-    double x1[2], x2[2];
+    float a, b, c, d, e;
+    float parm[4], roots[3];
+    float y, M, N;
+    float x1[2], x2[2];
     int rootCount1, rootCount2, i;
-    double MSquareTemp, MSquare, yTemp;
-    // const double EPS = FLT_MIN;  //min normalized positive value（1.175494351e-38F）
+    float MSquareTemp, MSquare, yTemp;
+    // const float EPS = FLT_MIN;  //min normalized positive value（1.175494351e-38F）
     UINT32 errNo = 0;
 
     *rootCount = 0;

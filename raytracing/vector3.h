@@ -8,86 +8,87 @@
 
 #include "defs.h"
 
+#include "cutils.h"
 namespace cg
 {
 
 class Vector3
 {
 public:
-    double x , y , z;
+    float x , y , z;
 
-    Vector3() : x(0), y(0), z(0) {}
-    explicit Vector3( double X , double Y , double Z ) : x( X ) , y( Y ) , z( Z ) {}
-    ~Vector3() {}
+    __host__ __device__ Vector3() : x(0), y(0), z(0) {}
+    __host__ __device__ explicit Vector3( float X , float Y , float Z ) : x( X ) , y( Y ) , z( Z ) {}
+    __host__ __device__ ~Vector3() {}
 
     friend Vector3 operator + ( const Vector3& , const Vector3& );
     friend Vector3 operator - ( const Vector3& , const Vector3& );
-    friend Vector3 operator * ( const Vector3& , const double& );
-    friend Vector3 operator * ( const double& , const Vector3& );
-    friend Vector3 operator / ( const Vector3& , const double& );
+    friend Vector3 operator * ( const Vector3& , const float& );
+    friend Vector3 operator * ( const float& , const Vector3& );
+    friend Vector3 operator / ( const Vector3& , const float& );
     friend Vector3 operator * ( const Vector3& , const Vector3& ); //cross product
     friend Vector3& operator += ( Vector3& , const Vector3& );
     friend Vector3& operator -= ( Vector3& , const Vector3& );
-    friend Vector3& operator *= ( Vector3& , const double& );
-    friend Vector3& operator /= ( Vector3& , const double& );
+    friend Vector3& operator *= ( Vector3& , const float& );
+    friend Vector3& operator /= ( Vector3& , const float& );
     friend Vector3& operator *= ( Vector3& , const Vector3& ); //cross product
     friend Vector3 operator - ( const Vector3& );
 
-    double Dot( const Vector3& ) const;
-    double Module2() const;
-    double Module() const;
-    double Distance2( Vector3& ) const;
-    double Distance( Vector3& ) const;
-    Vector3 Ortho( Vector3 ) const;
-    Vector3 GetUnitVector() const;
+    __host__ __device__ float Dot( const Vector3& ) const;
+    __host__ __device__ float Module2() const;
+    __host__ __device__ float Module() const;
+    __host__ __device__ float Distance2( Vector3& ) const;
+    __host__ __device__ float Distance( Vector3& ) const;
+    __host__ __device__ Vector3 Ortho( Vector3 ) const;
+    __host__ __device__ Vector3 GetUnitVector() const;
     /* Generate a unit vector perpendicular to this vector. */
-    Vector3 GetAnVerticalVector() const;
-    bool IsZeroVector() const;
-    Vector3 Reflect( Vector3 N ) const;
-    Vector3 Refract( Vector3 N , double n ) const;
+    __host__ __device__ Vector3 GetAnVerticalVector() const;
+    __host__ __device__ bool IsZeroVector() const;
+    __host__ __device__ Vector3 Reflect( Vector3 N ) const;
+    __host__ __device__ Vector3 Refract( Vector3 N , float n ) const;
     /* Generate a random vector with the same length above the tangent plaine. */
-    Vector3 Diffuse() const;
-    Vector3 Rotate( Vector3 axis , double theta ) const;
+    __host__ __device__ Vector3 Diffuse() const;
+    __host__ __device__ Vector3 Rotate( Vector3 axis , float theta ) const;
 
-    double& GetCoord(int axis);
+    __host__ __device__ float& GetCoord(int axis);
 
-    void Input(std::stringstream& fin);
-    void AssRandomVector();
+    __host__ __device__ void Input(std::stringstream& fin);
+    __host__ __device__ void AssRandomVector();
 };
 
 // ===============================================================
 
-Vector3 operator + ( const Vector3& A , const Vector3& B )
+__host__ __device__ Vector3 operator + ( const Vector3& A , const Vector3& B )
 {
     return Vector3( A.x + B.x , A.y + B.y , A.z + B.z );
 }
 
-Vector3 operator - ( const Vector3& A , const Vector3& B )
+__host__ __device__ Vector3 operator - ( const Vector3& A , const Vector3& B )
 {
     return Vector3( A.x - B.x , A.y - B.y , A.z - B.z );
 }
 
-Vector3 operator * ( const Vector3& A , const double& k )
+__host__ __device__ Vector3 operator * ( const Vector3& A , const float& k )
 {
     return Vector3( A.x * k , A.y * k , A.z * k );
 }
 
-Vector3 operator * ( const double& k, const Vector3& A )
+__host__ __device__ Vector3 operator * ( const float& k, const Vector3& A )
 {
     return Vector3( A.x * k , A.y * k , A.z * k );
 }
 
-Vector3 operator / ( const Vector3& A , const double& k )
+__host__ __device__ Vector3 operator / ( const Vector3& A , const float& k )
 {
     return Vector3( A.x / k , A.y / k , A.z / k );
 }
 
-Vector3 operator * ( const Vector3& A , const Vector3& B )
+__host__ __device__ Vector3 operator * ( const Vector3& A , const Vector3& B )
 {
     return Vector3( A.y * B.z - A.z * B.y , A.z * B.x - A.x * B.z , A.x * B.y - A.y * B.x );
 }
 
-Vector3& operator += ( Vector3& A , const Vector3& B )
+__host__ __device__ Vector3& operator += ( Vector3& A , const Vector3& B )
 {
     A.x += B.x;
     A.y += B.y;
@@ -95,7 +96,7 @@ Vector3& operator += ( Vector3& A , const Vector3& B )
     return A;
 }
 
-Vector3& operator -= ( Vector3& A , const Vector3& B )
+__host__ __device__ Vector3& operator -= ( Vector3& A , const Vector3& B )
 {
     A.x -= B.x;
     A.y -= B.y;
@@ -103,7 +104,7 @@ Vector3& operator -= ( Vector3& A , const Vector3& B )
     return A;
 }
 
-Vector3& operator *= ( Vector3& A , const double& k )
+__host__ __device__ Vector3& operator *= ( Vector3& A , const float& k )
 {
     A.x *= k;
     A.y *= k;
@@ -111,7 +112,7 @@ Vector3& operator *= ( Vector3& A , const double& k )
     return A;
 }
 
-Vector3& operator /= ( Vector3& A, const double& k )
+__host__ __device__ Vector3& operator /= ( Vector3& A, const float& k )
 {
     A.x /= k;
     A.y /= k;
@@ -119,7 +120,7 @@ Vector3& operator /= ( Vector3& A, const double& k )
     return A;
 }
 
-Vector3& operator *= ( Vector3& A , const Vector3& B )
+__host__ __device__ Vector3& operator *= ( Vector3& A , const Vector3& B )
 {
     auto x = A.y * B.z - A.z * B.y;
     auto y = A.z * B.x - A.x * B.z;
@@ -130,42 +131,42 @@ Vector3& operator *= ( Vector3& A , const Vector3& B )
     return A;
 }
 
-Vector3 operator - ( const Vector3& A )
+__host__ __device__ Vector3 operator - ( const Vector3& A )
 {
     return Vector3( -A.x , -A.y , -A.z );
 }
 
-double Vector3::Dot( const Vector3& term ) const
+__host__ __device__ float Vector3::Dot( const Vector3& term ) const
 {
     return x * term.x + y * term.y + z * term.z;
 }
 
-double Vector3::Module2() const
+__host__ __device__ float Vector3::Module2() const
 {
     return x * x + y * y + z * z;
 }
 
-double Vector3::Module() const
+__host__ __device__ float Vector3::Module() const
 {
     return sqrt( x * x + y * y + z * z );
 }
 
-double Vector3::Distance2( Vector3& term ) const
+__host__ __device__ float Vector3::Distance2( Vector3& term ) const
 {
     return ( term - *this ).Module2();
 }
 
-double Vector3::Distance( Vector3& term ) const
+__host__ __device__ float Vector3::Distance( Vector3& term ) const
 {
     return ( term - *this ).Module();
 }
 
-Vector3 Vector3::Ortho( Vector3 term ) const
+__host__ __device__ Vector3 Vector3::Ortho( Vector3 term ) const
 {
     return *this - term * this->Dot(term);
 }
 
-double& Vector3::GetCoord( int axis )
+__host__ __device__ float& Vector3::GetCoord( int axis )
 {
     if (axis == 0) {
         return x;
@@ -176,12 +177,12 @@ double& Vector3::GetCoord( int axis )
     }
 }
 
-Vector3 Vector3::GetUnitVector() const
+__host__ __device__ Vector3 Vector3::GetUnitVector() const
 {
     return *this / Module();
 }
 
-void Vector3::AssRandomVector()
+__host__ __device__ void Vector3::AssRandomVector()
 {
     do {
         x = 2 * preciseRan() - 1;
@@ -191,7 +192,7 @@ void Vector3::AssRandomVector()
     *this = GetUnitVector();
 }
 
-Vector3 Vector3::GetAnVerticalVector() const
+__host__ __device__ Vector3 Vector3::GetAnVerticalVector() const
 {
     Vector3 ret = *this * Vector3( 0 , 0 , 1 );
     if (ret.IsZeroVector()) {
@@ -202,46 +203,46 @@ Vector3 Vector3::GetAnVerticalVector() const
     return ret;
 }
 
-bool Vector3::IsZeroVector() const
+__host__ __device__ bool Vector3::IsZeroVector() const
 {
     return fabs( x ) < EPS && fabs( y ) < EPS && fabs( z ) < EPS;
 }
 
-void Vector3::Input( std::stringstream& fin )
+__host__ __device__ void Vector3::Input( std::stringstream& fin )
 {
     fin >> x >> y >> z;
 }
 
-Vector3 Vector3::Reflect( Vector3 N ) const
+__host__ __device__ Vector3 Vector3::Reflect( Vector3 N ) const
 {
     return *this - N * ( 2 * Dot( N ) );
 }
 
-Vector3 Vector3::Refract( Vector3 N , double n ) const
+__host__ __device__ Vector3 Vector3::Refract( Vector3 N , float n ) const
 {
     Vector3 V = GetUnitVector();
-    double cosI = -N.Dot( V ) , cosT2 = 1 - ( n * n ) * ( 1 - cosI * cosI );
+    float cosI = -N.Dot( V ) , cosT2 = 1 - ( n * n ) * ( 1 - cosI * cosI );
     if ( cosT2 > EPS ) return V * n + N * ( n * cosI - sqrt( cosT2 ) );
     return V.Reflect( N );
 }
 
-Vector3 Vector3::Diffuse() const
+__host__ __device__ __host__ __device__ Vector3 Vector3::Diffuse() const
 {
     Vector3 Vert = GetAnVerticalVector();
     // sqrt to avoid too small value
     // theta in [0, pi/2), more likely to be a larger value
-    double theta = acos( sqrt( preciseRan() ) );
-    double phi = preciseRan() * 2 * PI;
+    float theta = acos( sqrt( preciseRan() ) );
+    float phi = preciseRan() * 2 * PI;
     // rotate this vector around a perpendicular vector by theta,
     // then rotate the result vector around the original vector by phi.
     return Rotate( Vert , theta ).Rotate( *this , phi );
 }
 
-Vector3 Vector3::Rotate( Vector3 axis , double theta ) const
+__host__ __device__ Vector3 Vector3::Rotate( Vector3 axis , float theta ) const
 {
     Vector3 ret;
-    double cost = cos( theta );
-    double sint = sin( theta );
+    float cost = cos( theta );
+    float sint = sin( theta );
     axis = axis.GetUnitVector();
 
     ret.x += x * ( axis.x * axis.x + ( 1 - axis.x * axis.x ) * cost );
