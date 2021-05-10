@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.10)
 
 project(raytracing)
 
-#add_definitions(-DOLD_CXX)
+add_definitions(-DOLD_CXX)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -34,4 +34,4 @@ find_package(Threads REQUIRED)
 
 add_executable(${PROJECT_NAME} ${SRCS})
 target_link_libraries(raytracing Threads::Threads)
-#target_link_libraries(${PROJECT_NAME} stdc++fs)
+target_link_libraries(${PROJECT_NAME} stdc++fs)
