@@ -25,7 +25,7 @@ public:
     Primitive* GetPrimitiveHead() { return primitive_head; }
 
     void CreateScene(Primitive* primitive_head_p);
-    CollidePrimitive FindNearestPrimitiveGetCollide( Vector3 ray_O , Vector3 ray_V );
+    CollidePrimitive FindNearestPrimitiveGetCollide( Vector3 ray_O , Vector3 ray_V ) const;
 };
 
 // ===============================================
@@ -51,7 +51,7 @@ void Scene::CreateScene(Primitive* primitive_head_p)
     primitive_head = primitive_head_p;
 }
 
-CollidePrimitive Scene::FindNearestPrimitiveGetCollide( Vector3 ray_O , Vector3 ray_V )
+CollidePrimitive Scene::FindNearestPrimitiveGetCollide( Vector3 ray_O , Vector3 ray_V ) const
 {
     CollidePrimitive ret;
 

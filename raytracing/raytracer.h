@@ -10,8 +10,9 @@
 
 #include <omp.h>
 
-#include"scene.h"
-#include"bmp.h"
+#include "ray.h"
+#include "scene.h"
+#include "bmp.h"
 
 namespace cg
 {
@@ -30,26 +31,41 @@ class Raytracer {
     Color background_color_top;
     Color background_color_bottom;
     Camera* camera;
+    Color RayTracing( Vector3 ray_O , Vector3 ray_V , int dep , int* hash );
+
     Color CalnDiffusion( CollidePrimitive collide_primitive , int* hash );
     Color CalnReflection( CollidePrimitive collide_primitive , Vector3 ray_V , int dep , int* hash );
     Color CalnRefraction( CollidePrimitive collide_primitive , Vector3 ray_V , int dep , int* hash );
-    Color RayTracing( Vector3 ray_O , Vector3 ray_V , int dep , int* hash );
 
 public:
     Raytracer();
     ~Raytracer() {}
 
+    Color CalnDiffusion(CollidePrimitive collide_primitive);
+    bool CalnReflection(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray);
+    bool CalnRefraction(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray);
+
+    Color GetBackgroundColor(double t) const { return background_color_bottom * (1.0 - t) + background_color_top * t; }
+
     void SetInput( std::string file ) { input = file; }
     void SetOutput( std::string file ) { output = file; }
+
     void CreateAll();
     Primitive* CreateAndLinkLightPrimitive(Primitive* primitive_head);
+
     void Run();
     void DebugRun(int w1, int w2, int h1, int h2);
     void MultiThreadRun();
     void MultiThreadFuncCalColor(int i, int** sample);
     void MultiThreadFuncResampling(int i, int** sample);
+
     int GetH() const { return camera->GetH(); }
     int GetW() const { return camera->GetW(); }
+
+    Camera* GetCamera() { return camera; }
+    const Scene& GetScene() const { return scene; }
+
+    void Write() const;
 };
 
 // =========================================================
@@ -59,6 +75,123 @@ Raytracer::Raytracer() {
     background_color_top = Color();
     background_color_bottom = Color();
     camera = new Camera;
+}
+
+Color Raytracer::CalnDiffusion(CollidePrimitive collide_primitive)
+{
+    Primitive* primitive = collide_primitive.collide_primitive;
+    Color color = primitive->GetMaterial()->color;
+
+    // use texture if any
+    if (primitive->GetMaterial()->texture != NULL) {
+        color = color * collide_primitive.GetTexture();
+    }
+
+    // TODO: is this necessary???
+    //Color ret = color * background_color * primitive->GetMaterial()->diff;
+    Color ret;
+
+    for ( Light* light = light_head ; light != NULL ; light = light->GetNext() ) {
+        double shade = light->CalnShade(collide_primitive.C, scene.GetPrimitiveHead(), int(16 * camera->GetShadeQuality()));
+        if (shade < EPS) {
+            continue;
+        }
+
+        // now the light produces some shade on this diffuse point
+
+        // R: light ray from diffuse point to the light
+        Vector3 R = ( light->GetO() - collide_primitive.C ).GetUnitVector();
+        double dot = R.Dot( collide_primitive.N );
+        if (dot > EPS) {
+            // diffuse light
+            if ( primitive->GetMaterial()->diff > EPS ) {
+                double diff = primitive->GetMaterial()->diff * dot * shade;
+                ret += color * light->GetColor() * diff;
+            }
+            // specular light
+            if ( primitive->GetMaterial()->spec > EPS ) {
+                double spec = primitive->GetMaterial()->spec * pow( dot , SPEC_POWER ) * shade;
+                ret += color * light->GetColor() * spec;
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool Raytracer::CalnReflection(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray)
+{
+    Vector3 ray_V = in_V.Reflect( collide_primitive.N );
+    Primitive* primitive = collide_primitive.collide_primitive;
+
+    // only reflection
+    if (primitive->GetMaterial()->drefl < EPS || ray.depth > MAX_DREFL_DEP) {
+        ray.O = collide_primitive.C;
+        ray.V = ray_V;
+        ray.attenuation = primitive->GetMaterial()->color * primitive->GetMaterial()->refl;
+        return true;
+    }
+    // diffuse reflection (fuzzy reflection)
+    else {
+        // TODO: NEED TO IMPLEMENT
+
+        // Unit *circle* perpendicular to ray_V.
+        // This is different from sampling from a unit sphere -- when projecting the sphere
+        // to this circle the points are not uniformly distributed.
+        // However, considering the ExpBlur, this approximation may be justified.
+        auto baseX = ray_V.GetAnVerticalVector();
+        auto baseY = (ray_V * baseX).GetUnitVector();
+
+        // scale the circle according to drefl (fuzzy) value
+        baseX *= primitive->GetMaterial()->drefl;
+        baseY *= primitive->GetMaterial()->drefl;
+
+        // Color diffReflected;
+        // int numSamples = int(floor(16 * camera->GetDreflQuality()));
+        // for (int i = 0; i < numSamples; i++) {
+        //     // ADD BLUR
+        //     auto xy = primitive->GetMaterial()->blur->GetXY();
+        //     auto& x = xy.first;
+        //     auto& y = xy.second;
+        //     auto fuzzy_V = ray_V + baseX * x + baseY * y;
+        //     diffReflected += RayTracing(collide_primitive.C, fuzzy_V, dep + 1, hash);
+        // }
+
+        // ADD BLUR
+        auto xy = primitive->GetMaterial()->blur->GetXY();
+        auto& x = xy.first;
+        auto& y = xy.second;
+        auto fuzzy_V = ray_V + baseX * x + baseY * y;
+
+        ray.O = collide_primitive.C;
+        ray.V = fuzzy_V;
+        ray.attenuation = primitive->GetMaterial()->color * primitive->GetMaterial()->refl;
+        return true;
+    }
+}
+
+bool Raytracer::CalnRefraction(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray)
+{
+    Primitive* primitive = collide_primitive.collide_primitive;
+    double n = primitive->GetMaterial()->rindex;
+    if (collide_primitive.front) {
+        n = 1 / n;
+    }
+
+    Vector3 ray_V = ray_V.Refract( collide_primitive.N , n );
+
+    if (collide_primitive.front) {
+        ray.attenuation = Color(1.0, 1.0, 1.0) * primitive->GetMaterial()->refr;
+    } else {
+        Color absor = primitive->GetMaterial()->absor * -collide_primitive.dist;
+        Color trans = Color( exp( absor.r ) , exp( absor.g ) , exp( absor.b ) );
+        ray.attenuation = trans * primitive->GetMaterial()->refr;
+    }
+
+    ray.O = collide_primitive.C;
+    ray.V = ray_V;
+
+    return true;
 }
 
 Color Raytracer::CalnDiffusion(CollidePrimitive collide_primitive , int* hash )
@@ -470,6 +603,16 @@ void Raytracer::MultiThreadRun()
     bmp->Output( output );
     delete bmp;
 }
+
+void Raytracer::Write() const
+{
+    int H = camera->GetH() , W = camera->GetW();
+    Bmp* bmp = new Bmp( H , W );
+    camera->Output( bmp );
+    bmp->Output( output );
+    delete bmp;
+}
+
 
 } /* namespace cg */
 
