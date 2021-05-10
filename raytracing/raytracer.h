@@ -178,7 +178,7 @@ bool Raytracer::CalnRefraction(CollidePrimitive collide_primitive, const Vector3
         n = 1 / n;
     }
 
-    Vector3 ray_V = ray_V.Refract( collide_primitive.N , n );
+    Vector3 ray_V = in_V.Refract( collide_primitive.N , n );
 
     if (collide_primitive.front) {
         ray.attenuation = Color(1.0, 1.0, 1.0) * primitive->GetMaterial()->refr;

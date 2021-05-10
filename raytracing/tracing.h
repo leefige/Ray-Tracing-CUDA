@@ -38,7 +38,7 @@ int TraceRay(Raytracer& tracer, Ray& in, Ray& refl, Ray& refr)
             if (primitive->GetMaterial()->diff > EPS || primitive->GetMaterial()->spec > EPS) {
                 in.myColor += tracer.CalnDiffusion(collide_primitive);
             }
-            if (primitive->GetMaterial()->refl > EPS) {
+            /*if (primitive->GetMaterial()->refl > EPS) {
                 if (tracer.CalnReflection(collide_primitive, in.V, refl)) {
                     ret |= REFLE_BIT;
                 }
@@ -47,7 +47,7 @@ int TraceRay(Raytracer& tracer, Ray& in, Ray& refl, Ray& refr)
                 if (tracer.CalnRefraction(collide_primitive, in.V, refr)) {
                     ret |= REFRA_BIT;
                 }
-            }
+            }*/
         }
     }
     // nothing there, just background
@@ -63,7 +63,7 @@ int TraceRay(Raytracer& tracer, Ray& in, Ray& refl, Ray& refr)
 
 void Render(Raytracer& tracer, int i, int j)
 {
-    std::vector<Ray> stack;
+    std::vector<Ray*> stack;
 
     Camera* camera = tracer.GetCamera();
     Vector3 ray_O = camera->GetO();
@@ -72,16 +72,18 @@ void Render(Raytracer& tracer, int i, int j)
     for (int r = -NUM_RESAMPLE; r <= NUM_RESAMPLE; r++) {
         for (int c = -NUM_RESAMPLE; c <= NUM_RESAMPLE; c++) {
             Vector3 ray_V = camera->Emit(i + (double)r / (NUM_RESAMPLE * 2 + 1), j + (double)c / (NUM_RESAMPLE * 2 + 1));
-            Color res;
-            stack.emplace_back(ray_O, ray_V, res, Color(1.0, 1.0, 1.0));
+            Ray res(Vector3(), Vector3(), Color(1.0, 1.0, 1.0));
+            Ray* origin = new Ray(ray_O, ray_V, Color(1.0, 1.0, 1.0), &res);
+            stack.push_back(origin);
+            //std::cout << stack.size() << std::endl;
             while (stack.size() > 0) {
-                Ray& rayIn = stack.back();
+                Ray* rayIn = stack.back();
 
                 // not traced yet
-                if (!rayIn.visited) {
-                    Ray rayRefl = rayIn.Generate();
-                    Ray rayRefr = rayIn.Generate();
-                    int res = TraceRay(tracer, rayIn, rayRefl, rayRefr);
+                if (!rayIn->visited) {
+                    Ray* rayRefl = rayIn->Generate();
+                    Ray* rayRefr = rayIn->Generate();
+                    int res = TraceRay(tracer, *rayIn, *rayRefl, *rayRefr);
                     // go on tracing
                     if (res != 0) {
                         if (res | REFLE_BIT) {
@@ -93,19 +95,21 @@ void Render(Raytracer& tracer, int i, int j)
                     }
                     // end of tracing
                     else {
-                        rayIn.Finish();
+                        rayIn->Finish();
                         stack.pop_back();
+                        delete rayIn;
                     }
                 }
                 // children rays have returned color back already
                 else {
-                    rayIn.Finish();
+                    rayIn->Finish();
                     stack.pop_back();
+                    delete rayIn;
                 }
             } /* while */
 
             // now all rays have finished
-            pixel += res / pow((NUM_RESAMPLE * 2 + 1), 2);
+            pixel += res.myColor / pow((NUM_RESAMPLE * 2 + 1), 2);
         }
     } /* for */
     camera->SetColor(i, j, pixel);

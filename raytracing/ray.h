@@ -14,27 +14,26 @@ public:
     Vector3 V;
     Color myColor;
     Color attenuation;
+    Ray* parent;
     const int depth;
     bool visited;
 
-    Ray(const Vector3& o, const Vector3& v, Color& color, Color attenuation, int depth = 0) :
+    Ray(const Vector3& o, const Vector3& v, const Color& attenuation, Ray* parent = nullptr, int depth = 0) :
         O(o), V(v), attenuation(attenuation),
-        parentColor(color), depth(depth), visited(false)
+        parent(parent), depth(depth), visited(false)
     { }
 
-    Ray Generate()
+    Ray* Generate()
     {
-        return Ray(Vector3(), Vector3(), myColor, Color(), depth + 1);
+        return new Ray(Vector3(), Vector3(), Color(), this, depth + 1);
     }
 
     void Finish()
     {
         myColor.Confine();
-        parentColor += myColor * attenuation;
+        parent->myColor += myColor * attenuation;
     }
 
-private:
-    Color& parentColor;
 };
 
 

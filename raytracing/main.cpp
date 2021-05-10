@@ -7,6 +7,9 @@
 #include <filesystem>    /* C++17 is required */
 #endif
 
+#include <thread>
+
+
 #include "tracing.h"
 #include "raytracer.h"
 
@@ -17,6 +20,14 @@ namespace fs = std::filesystem;
 #endif
 
 using namespace cg;
+
+void MultiThreadFuncRender(Raytracer* tracer, const int W, int i)
+{
+    srand(i);
+    for (int j = 0; j < W; j++) {
+        Render(*tracer, i, j);
+    }
+}
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -48,7 +59,10 @@ int main(int argc, char* argv[]) {
     raytracer->SetInput(inputFile);
     raytracer->SetOutput(outputFile);
 
-    int H = raytracer->GetH() , W = raytracer->GetW();
+    raytracer->CreateAll();
+
+    int H = raytracer->GetH(), W = raytracer->GetW();
+
 
 #ifdef _OPENMP
     //omp_set_num_threads(12);
@@ -67,6 +81,17 @@ int main(int argc, char* argv[]) {
             Render(*raytracer, i, j);
         }
     }
+
+    /*std::vector<std::thread> threads(H);
+
+    for (int i = 0; i < H; i++) {
+        threads[i] = std::thread(&MultiThreadFuncRender, raytracer, W, i);
+    }
+    for (int i = 0; i < H; i++) {
+        threads[i].join();
+    }*/
+
+    
     raytracer->Write();
     std::cout << "Output file saved at '" << fs::absolute(outputPath) << "'." << std::endl;
     return 0;
