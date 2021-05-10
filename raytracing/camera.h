@@ -1,25 +1,22 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef CG_CAMERA_H_
+#define CG_CAMERA_H_
 
-#include<string>
-#include<sstream>
+#include <cstdio>
 
-#include"vector3.h"
-#include"color.h"
-#include"bmp.h"
+#include <string>
+#include <sstream>
+#include <iostream>
 
-extern const double STD_LENS_WIDTH; //the width of lens in the scene
-extern const double STD_LENS_HEIGHT;
-extern const int STD_IMAGE_WIDTH;
-extern const int STD_IMAGE_HEIGTH;
-extern const int STD_SHADE_QUALITY; //caln shade :: how many times will be run (*16)
-extern const int STD_DREFL_QUALITY; //caln drefl :: how many times will be run (*16)
-extern const int STD_MAX_PHOTONS;
-extern const int STD_EMIT_PHOTONS;
-extern const int STD_SAMPLE_PHOTONS;
-extern const double STD_SAMPLE_DIST;
+#include "defs.h"
+#include "vector3.h"
+#include "color.h"
+#include "bmp.h"
 
-class Camera {
+namespace cg
+{
+
+class Camera
+{
     Vector3 O , N , Dx , Dy;
     double lens_W , lens_H;
     int W , H;
@@ -52,4 +49,84 @@ public:
     void Output( Bmp* );
 };
 
-#endif
+// ===================================================
+
+Camera::Camera()
+{
+    O = Vector3( 0 , 0 , 0 );
+    N = Vector3( 0 , 1 , 0 );
+    lens_W = STD_LENS_WIDTH;
+    lens_H = STD_LENS_HEIGHT;
+    W = STD_IMAGE_WIDTH;
+    H = STD_IMAGE_HEIGHT;
+    shade_quality = STD_SHADE_QUALITY;
+    drefl_quality = STD_DREFL_QUALITY;
+    max_photons = STD_MAX_PHOTONS;
+    emit_photons = STD_EMIT_PHOTONS;
+    sample_photons = STD_SAMPLE_PHOTONS;
+    sample_dist = STD_SAMPLE_DIST;
+    data = nullptr;
+}
+
+Camera::~Camera()
+{
+    if (data != nullptr) {
+        for (int i = 0; i < H; i++) {
+            delete[] data[i];
+        }
+        delete[] data;
+    }
+}
+
+void Camera::Initialize()
+{
+    N = N.GetUnitVector();
+    Dx = N.GetAnVerticalVector();
+    Dy = Dx * N;
+    Dx = Dx * lens_W / 2;
+    Dy = Dy * lens_H / 2;
+
+    data = new Color*[H];
+    for (int i = 0; i < H; i++) {
+        data[i] = new Color[W];
+    }
+}
+
+Vector3 Camera::Emit( double i , double j )
+{
+    return N + Dy * ( 2 * i / H - 1 ) + Dx * ( 2 * j / W - 1 );
+}
+
+void Camera::Input( std::string var , std::stringstream& fin )
+{
+    if ( var == "O=" ) O.Input( fin );
+    if ( var == "N=" ) {
+        N.Input(fin);
+        N = N.GetUnitVector();
+    }
+    if ( var == "lens_W=" ) fin >> lens_W;
+    if ( var == "lens_H=" ) fin >> lens_H;
+    if ( var == "image_W=" ) fin >> W;
+    if ( var == "image_H=" ) fin >> H;
+    if ( var == "shade_quality=" ) fin >> shade_quality;
+    if ( var == "drefl_quality=" ) fin >> drefl_quality;
+    if ( var == "max_photons=" ) fin >> max_photons;
+    if ( var == "emit_photons=" ) fin >> emit_photons;
+    if ( var == "sample_photons=" ) fin >> sample_photons;
+    if ( var == "sample_dist=" ) fin >> sample_dist;
+}
+
+void Camera::Output( Bmp* bmp )
+{
+    bmp->Initialize( H , W );
+
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            bmp->SetColor(i, j, data[i][j]);
+        }
+    }
+}
+
+} /* namespace cg */
+
+#endif /* CG_CAMERA_H_ */

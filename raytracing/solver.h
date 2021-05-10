@@ -1,5 +1,5 @@
-#ifndef SOLVER_H
-#define SOLVER_H
+#ifndef CG_SOLVER_H_
+#define CG_SOLVER_H_
 /**
 * Reference: https://blog.csdn.net/maple_2014/article/details/104578335
 * Original author: Marc Pony(marc_pony@163.com)
@@ -8,19 +8,21 @@
 #include <cmath>
 #include <cfloat>
 
+#include "defs.h"
+
+namespace cg
+{
+
 typedef unsigned int UINT32;
 constexpr UINT32 ERR_NAN = 0x00000001;
 constexpr UINT32 ERR_INF = 0x00000002;
 
-#define MAX(a, b) ((a) > (b)) ? (a) : (b)
-#define MIN(a, b) ((a) < (b)) ? (a) : (b)
-
 /*************************************************
 Function: is_number
-Description: ÅĞ¶Ï¸¡µãÊıÊÇ·ñÎªnan
-Input: ¸¡µãÊıx
-Output: ÎŞ
-Return: Èô¸¡µãÊıxÎªnan·µ»Ø0£¬·ñÔò·µ»Ø1
+Description: åˆ¤æ–­æµ®ç‚¹æ•°æ˜¯å¦ä¸ºnan
+Input: æµ®ç‚¹æ•°x
+Output: æ— 
+Return: è‹¥æµ®ç‚¹æ•°xä¸ºnanè¿”å›0ï¼Œå¦åˆ™è¿”å›1
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
 int is_number(double x)
@@ -30,10 +32,10 @@ int is_number(double x)
 
 /*************************************************
 Function: is_finite_number
-Description: ÅĞ¶Ï¸¡µãÊıÊÇ·ñÎªinf
-Input: ¸¡µãÊıx
-Output: ÎŞ
-Return: Èô¸¡µãÊıxÎªinf·µ»Ø0£¬·ñÔò·µ»Ø1
+Description: åˆ¤æ–­æµ®ç‚¹æ•°æ˜¯å¦ä¸ºinf
+Input: æµ®ç‚¹æ•°x
+Output: æ— 
+Return: è‹¥æµ®ç‚¹æ•°xä¸ºinfè¿”å›0ï¼Œå¦åˆ™è¿”å›1
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
 int is_finite_number(double x)
@@ -43,18 +45,18 @@ int is_finite_number(double x)
 
 /*************************************************
 Function: solve_quadratic_equation
-Description: ÇóÒ»Ôª¶ş´Î·½³Ì(a*x^2 + b*x + c = 0)µÄËùÓĞÊµÊı¸ù
-Input: ·½³ÌµÄÏµÊı p = {c, b, a}
-Output: ·½³ÌµÄËùÓĞÊµÊı¸ùx, ÊµÊı¸ùµÄ¸öÊırootCount
-Return: ´íÎóºÅ
+Description: æ±‚ä¸€å…ƒäºŒæ¬¡æ–¹ç¨‹(a*x^2 + b*x + c = 0)çš„æ‰€æœ‰å®æ•°æ ¹
+Input: æ–¹ç¨‹çš„ç³»æ•° p = {c, b, a}
+Output: æ–¹ç¨‹çš„æ‰€æœ‰å®æ•°æ ¹x, å®æ•°æ ¹çš„ä¸ªæ•°rootCount
+Return: é”™è¯¯å·
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
 UINT32 solve_quadratic_equation(double p[], double x[], int* rootCount)
 {
     int i;
     double a, b, c, delta, sqrtDelta;
-    const double ZERO = FLT_MIN;  // min normalized positive value£¨1.175494351e-38F£©
-    const double EPS = FLT_MIN;
+    const double ZERO = FLT_MIN;  // min normalized positive valueï¼ˆ1.175494351e-38Fï¼‰
+    // const double EPS = FLT_MIN;
     UINT32 errNo = 0;
 
     *rootCount = 0;
@@ -85,18 +87,18 @@ UINT32 solve_quadratic_equation(double p[], double x[], int* rootCount)
 
         delta = b * b - 4.0 * a * c;
         if (delta > ZERO) {
-            if (abs(c - 0.0) < EPS)	//Èôc = 0,ÓÉÓÚ¼ÆËãÎó²î,sqrt(b*b - 4*a*c£©²»µÈÓÚ|b|
+            if (abs(c - 0.0) < EPS)	//è‹¥c = 0,ç”±äºè®¡ç®—è¯¯å·®,sqrt(b*b - 4*a*cï¼‰ä¸ç­‰äº|b|
             {
                 x[0] = 0.0;
                 x[1] = -b / a;
             } else {
                 sqrtDelta = sqrt(delta);
                 if (b > 0.0) {
-                    x[0] = (-2.0 * c) / (b + sqrtDelta);	//±ÜÃâÁ½¸öºÜ½Ó½üµÄÊıÏà¼õ,µ¼ÖÂ¾«¶È¶ªÊ§
+                    x[0] = (-2.0 * c) / (b + sqrtDelta);	//é¿å…ä¸¤ä¸ªå¾ˆæ¥è¿‘çš„æ•°ç›¸å‡,å¯¼è‡´ç²¾åº¦ä¸¢å¤±
                     x[1] = (-b - sqrtDelta) / (2.0 * a);
                 } else {
                     x[0] = (-b + sqrtDelta) / (2.0 * a);
-                    x[1] = (-2.0 * c) / (b - sqrtDelta);	//±ÜÃâÁ½¸öºÜ½Ó½üµÄÊıÏà¼õ,µ¼ÖÂ¾«¶È¶ªÊ§
+                    x[1] = (-2.0 * c) / (b - sqrtDelta);	//é¿å…ä¸¤ä¸ªå¾ˆæ¥è¿‘çš„æ•°ç›¸å‡,å¯¼è‡´ç²¾åº¦ä¸¢å¤±
                 }
             }
             *rootCount = 2;
@@ -113,17 +115,17 @@ UINT32 solve_quadratic_equation(double p[], double x[], int* rootCount)
 
 /*************************************************
 Function: solve_cubic_equation
-Description: Ê¢½ğ¹«Ê½ÇóÒ»ÔªÈı´Î·½³Ì(a*x^3 + b*x^2 + c*x + d = 0)µÄËùÓĞÊµÊı¸ù
+Description: ç››é‡‘å…¬å¼æ±‚ä¸€å…ƒä¸‰æ¬¡æ–¹ç¨‹(a*x^3 + b*x^2 + c*x + d = 0)çš„æ‰€æœ‰å®æ•°æ ¹
              A = b * b - 3.0 * a * c;
              B = b * c - 9.0 * a * d;
              C = c * c - 3.0 * b * d;
-             (1)µ±A = B = 0Ê±£¬·½³ÌÓĞÒ»¸öÈıÖØÊµ¸ù
-             (2)µ±¦¤ = B^2£­4 * A * C > 0Ê±£¬·½³ÌÓĞÒ»¸öÊµ¸ùºÍÒ»¶Ô¹²éîĞé¸ù
-             (3)µ±¦¤ = B^2£­4 * A * C = 0Ê±£¬·½³ÌÓĞÈı¸öÊµ¸ù£¬ÆäÖĞÓĞÒ»¸öÁ½ÖØ¸ù
-             (4)µ±¦¤ = B^2£­4 * A * C < 0Ê±£¬·½³ÌÓĞÈı¸ö²»ÏàµÈµÄÊµ¸ù
-Input: ·½³ÌµÄÏµÊı p = {d, c, b, a}
-Output: ·½³ÌµÄËùÓĞÊµÊı¸ùx£¬ÊµÊı¸ùµÄ¸öÊırootCount
-Return: ´íÎóºÅ
+             (1)å½“A = B = 0æ—¶ï¼Œæ–¹ç¨‹æœ‰ä¸€ä¸ªä¸‰é‡å®æ ¹
+             (2)å½“Î” = B^2ï¼4 * A * C > 0æ—¶ï¼Œæ–¹ç¨‹æœ‰ä¸€ä¸ªå®æ ¹å’Œä¸€å¯¹å…±è½­è™šæ ¹
+             (3)å½“Î” = B^2ï¼4 * A * C = 0æ—¶ï¼Œæ–¹ç¨‹æœ‰ä¸‰ä¸ªå®æ ¹ï¼Œå…¶ä¸­æœ‰ä¸€ä¸ªä¸¤é‡æ ¹
+             (4)å½“Î” = B^2ï¼4 * A * C < 0æ—¶ï¼Œæ–¹ç¨‹æœ‰ä¸‰ä¸ªä¸ç›¸ç­‰çš„å®æ ¹
+Input: æ–¹ç¨‹çš„ç³»æ•° p = {d, c, b, a}
+Output: æ–¹ç¨‹çš„æ‰€æœ‰å®æ•°æ ¹xï¼Œå®æ•°æ ¹çš„ä¸ªæ•°rootCount
+Return: é”™è¯¯å·
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
 UINT32 solve_cubic_equation(double p[], double x[], int* rootCount)
@@ -131,8 +133,8 @@ UINT32 solve_cubic_equation(double p[], double x[], int* rootCount)
     int i;
     double a, b, c, d, A, B, C, delta;
     double Y1, Y2, Z1, Z2, K, parm[3], roots[2], theta, T;
-    const double ZERO = FLT_MIN;  // min normalized positive value£¨1.175494351e-38F£©
-    const double EPS = FLT_MIN;
+    const double ZERO = FLT_MIN;  // min normalized positive valueï¼ˆ1.175494351e-38Fï¼‰
+    // const double EPS = FLT_MIN;
     const double CALCULATE_ERROR = 1.0e-7;
     UINT32 errNo = 0;
 
@@ -192,7 +194,7 @@ UINT32 solve_cubic_equation(double p[], double x[], int* rootCount)
             Y1 = A * b + 3.0 * a * Z1;
             Y2 = A * b + 3.0 * a * Z2;
 
-            if (Y1 < 0.0 && Y2 < 0.0)	//powº¯ÊıµÄµ×Êı±ØĞëÎª·Ç¸ºÊı,±ØĞë·ÖÀàÌÖÂÛ
+            if (Y1 < 0.0 && Y2 < 0.0)	//powå‡½æ•°çš„åº•æ•°å¿…é¡»ä¸ºéè´Ÿæ•°,å¿…é¡»åˆ†ç±»è®¨è®º
             {
                 x[0] = (-b + pow(-Y1, 1.0 / 3.0) + pow(-Y2, 1.0 / 3.0)) / (3.0 * a);
             } 			else if (Y1 < 0.0 && Y2 > 0.0) 			{
@@ -213,7 +215,7 @@ UINT32 solve_cubic_equation(double p[], double x[], int* rootCount)
         } else {
             if (A > 0.0) {
                 T = (2.0 * A * b - 3.0 * a * B) / (2.0 * pow(A, 3.0 / 2.0));
-                //ÓÉÓÚ¼ÆËãÎó²î,TµÄÖµ¿ÉÄÜÂÔ´óÓÚ1(Èç1.0000001)
+                //ç”±äºè®¡ç®—è¯¯å·®,Tçš„å€¼å¯èƒ½ç•¥å¤§äº1(å¦‚1.0000001)
                 if (T > 1.0) {
                     if (T < 1.0 + CALCULATE_ERROR) {
                         T = 1.0;
@@ -242,10 +244,10 @@ UINT32 solve_cubic_equation(double p[], double x[], int* rootCount)
 
 /*************************************************
 Function: solve_quartic_equation
-Description: ·ÑÀ­Àï·¨ÇóÒ»ÔªËÄ´Î·½³Ì(a*x^4 + b*x^3 + c*x^2 + d*x + e = 0)µÄËùÓĞÊµÊı¸ù
-Input: ·½³ÌµÄÏµÊı p = {e, d, c, b, a}
-Output: ·½³ÌµÄËùÓĞÊµÊı¸ùx,ÊµÊı¸ùµÄ¸öÊırootCount
-Return: ´íÎóºÅ
+Description: è´¹æ‹‰é‡Œæ³•æ±‚ä¸€å…ƒå››æ¬¡æ–¹ç¨‹(a*x^4 + b*x^3 + c*x^2 + d*x + e = 0)çš„æ‰€æœ‰å®æ•°æ ¹
+Input: æ–¹ç¨‹çš„ç³»æ•° p = {e, d, c, b, a}
+Output: æ–¹ç¨‹çš„æ‰€æœ‰å®æ•°æ ¹x,å®æ•°æ ¹çš„ä¸ªæ•°rootCount
+Return: é”™è¯¯å·
 Author: Marc Pony(marc_pony@163.com)
 *************************************************/
 UINT32 solve_quartic_equation(double p[], double x[], int* rootCount)
@@ -256,7 +258,7 @@ UINT32 solve_quartic_equation(double p[], double x[], int* rootCount)
     double x1[2], x2[2];
     int rootCount1, rootCount2, i;
     double MSquareTemp, MSquare, yTemp;
-    const double EPS = FLT_MIN;  //min normalized positive value£¨1.175494351e-38F£©
+    // const double EPS = FLT_MIN;  //min normalized positive valueï¼ˆ1.175494351e-38Fï¼‰
     UINT32 errNo = 0;
 
     *rootCount = 0;
@@ -345,71 +347,6 @@ UINT32 solve_quartic_equation(double p[], double x[], int* rootCount)
     return errNo;
 }
 
-/*
-void main(void)
-{
-    double x[4], p[5];
-    int rootCount;
-    double a, b, c, d, e;
-    UINT32 errNo = ERR_NO_ERROR;
+} /* namespace cg */
 
-    //Ò»ÔªËÄ´Î·½³Ì²âÊÔ
-    //£¨1£©(x - 1) * (x - 2) * (x^2 + 1) = 0 (x^4 - 3*x^3 + 3*x^2 - 3*x + 2 = 0)
-    a = 1;
-    b = -3;
-    c = 3;
-    d = -3;
-    e = 2;
-
-    //(2) (x - 1)^2 * (x^2 + 1) = 0 (x^4 - 2*x^3 + 2*x^2 - 2*x + 1 = 0)
-    //a = 1;
-    //b = -2;
-    //c = 2;
-    //d = -2;
-    //e = 1;
-
-    //(3) (x - 1) * (x - 2) * (x - 3) * (x - 4) = 0 (x^4 - 10*x^3 + 35*x^2 - 50*x + 24 = 0)
-    //a = 1;
-    //b = -10;
-    //c = 35;
-    //d = -50;
-    //e = 24;
-
-    //(4) (x - 1)^2 * (x - 2)^2 = 0 (x^4 - 6*x^3 + 13*x^2 - 12*x + 4 = 0)
-    //a = 1;
-    //b = -6;
-    //c = 13;
-    //d = -12;
-    //e = 4;
-
-    //(5) 0*x^4 + x^3 - 3*x^2 + 3*x - 1 = 0
-    //a = 0;
-    //b = 1;
-    //c = -3;
-    //d = 3;
-    //e = -1;
-
-    //(6) 0*x^4 + 0*x^3 + x^2 - 2*x + 1 = 0
-    //a = 0;
-    //b = 0;
-    //c = 1;
-    //d = -2;
-    //e = 1;
-
-    //(7) 0*x^4 + 0*x^3 + 0*x^2 - 2*x + 1 = 0
-    //a = 0;
-    //b = 0;
-    //c = 0;
-    //d = -2;
-    //e = 1;
-
-    p[0] = e;
-    p[1] = d;
-    p[2] = c;
-    p[3] = b;
-    p[4] = a;
-    errNo = solve_quartic_equation(p, x, &rootCount);
-}
-*/
-
-#endif
+#endif /* CG_SOLVER_H_ */

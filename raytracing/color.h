@@ -1,9 +1,13 @@
-#ifndef COLOR_H
-#define COLOR_H
+#ifndef CG_COLOR_H_
+#define CG_COLOR_H_
 
-#include<sstream>
+#include <sstream>
 
-class Color {
+namespace cg
+{
+
+class Color
+{
 public:
     double r , g , b;
 
@@ -23,4 +27,77 @@ public:
     void Input( std::stringstream& );
 };
 
-#endif
+// ===============================================
+
+Color operator + ( const Color& A , const Color& B )
+{
+    return Color( A.r + B.r , A.g + B.g , A.b + B.b );
+}
+
+Color operator - ( const Color& A , const Color& B )
+{
+    return Color( A.r - B.r , A.g - B.g , A.b - B.b );
+}
+
+Color operator * ( const Color& A , const Color& B )
+{
+    return Color( A.r * B.r , A.g * B.g , A.b * B.b );
+}
+
+Color operator * ( const Color& A , const double& k )
+{
+    return Color( A.r * k , A.g * k , A.b * k );
+}
+
+Color operator / ( const Color& A , const double& k )
+{
+    return Color( A.r / k , A.g / k , A.b / k );
+}
+
+Color& operator += ( Color& A , const Color& B )
+{
+    A.r += B.r;
+    A.g += B.g;
+    A.b += B.b;
+    return A;
+}
+
+Color& operator -= ( Color& A , const Color& B )
+{
+    A.r -= B.r;
+    A.g -= B.g;
+    A.b -= B.b;
+    return A;
+}
+
+Color& operator *= ( Color& A , const double& k )
+{
+    A.r *= k;
+    A.g *= k;
+    A.b *= k;
+    return A;
+}
+
+Color& operator /= ( Color& A , const double& k )
+{
+    A.r /= k;
+    A.g /= k;
+    A.b /= k;
+    return A;
+}
+
+void Color::Confine()
+{
+    if ( r > 1 ) r = 1;
+    if ( g > 1 ) g = 1;
+    if ( b > 1 ) b = 1;
+}
+
+void Color::Input( std::stringstream& fin )
+{
+    fin >> r >> g >> b;
+}
+
+} /* namespace cg */
+
+#endif /* CG_COLOR_H_ */

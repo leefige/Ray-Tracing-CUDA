@@ -15,6 +15,8 @@ namespace fs = std::experimental::filesystem;
 namespace fs = std::filesystem;
 #endif
 
+using namespace cg;
+
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         std::cout << "Usage: " << std::endl << argv[0] << " <input_file.txt> <output_file.bmp>" << std::endl;
