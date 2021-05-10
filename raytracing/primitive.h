@@ -80,15 +80,16 @@ public:
     Primitive( const Primitive& );
     ~Primitive();
 
-    int GetSample() { return sample; }
+    int GetSample() const { return sample; }
     Material* GetMaterial() { return material; }
     Primitive* GetNext() { return next; }
     void SetNext( Primitive* primitive ) { next = primitive; }
 
     virtual void Input( std::string , std::stringstream& );
+    virtual bool IsLightPrimitive() const { return false; }
+
     virtual CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V ) = 0;
     virtual Color GetTexture(Vector3 crash_C) = 0;
-    virtual bool IsLightPrimitive(){return false;}
 };
 
 struct CollidePrimitive
@@ -98,8 +99,8 @@ struct CollidePrimitive
     Vector3 N , C;
     double dist;
     bool front;
-    CollidePrimitive(){isCollide = false; collide_primitive = NULL; dist = BIG_DIST;}
-    Color GetTexture(){return collide_primitive->GetTexture(C);}
+    CollidePrimitive() : isCollide(false), collide_primitive(NULL), dist(BIG_DIST) { }
+    Color GetTexture() const { return collide_primitive->GetTexture(C); }
 };
 
 class Sphere : public Primitive

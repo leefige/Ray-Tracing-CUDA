@@ -12,9 +12,12 @@ class Ray
 public:
     Vector3 O;
     Vector3 V;
+
     Color myColor;
     Color attenuation;
+
     Ray* parent;
+
     const int depth;
     bool visited;
 
@@ -23,10 +26,7 @@ public:
         parent(parent), depth(depth), visited(false)
     { }
 
-    Ray* Generate()
-    {
-        return new Ray(Vector3(), Vector3(), Color(), this, depth + 1);
-    }
+    Ray* Generate() { return new Ray(Vector3(), Vector3(), Color(), this, depth + 1); }
 
     void Finish()
     {

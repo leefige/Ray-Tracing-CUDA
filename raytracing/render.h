@@ -1,5 +1,5 @@
-#ifndef CG_TRACING_H_
-#define CG_TRACING_H_
+#ifndef CG_RENDER_H_
+#define CG_RENDER_H_
 
 #include <vector>
 
@@ -10,56 +10,6 @@
 
 namespace cg
 {
-
-constexpr int REFLE_BIT = 1;
-constexpr int REFRA_BIT = 2;
-
-
-int TraceRay(Raytracer& tracer, Ray& in, Ray& refl, Ray& refr)
-{
-    in.visited = true;
-    if (in.depth > MAX_RAYTRACING_DEP) {
-        return 0;
-    }
-
-    int ret = 0;
-
-    CollidePrimitive collide_primitive = tracer.GetScene().FindNearestPrimitiveGetCollide(in.O , in.V);
-
-    if (collide_primitive.isCollide) {
-        Primitive* primitive = collide_primitive.collide_primitive;
-        // light: end of tracing
-        if (primitive->IsLightPrimitive()) {
-            in.myColor += primitive->GetMaterial()->color;
-            //std::cout<<primitive->GetMaterial()->color.r;
-        }
-        // more rays!
-        else {
-            if (primitive->GetMaterial()->diff > EPS || primitive->GetMaterial()->spec > EPS) {
-                in.myColor += tracer.CalnDiffusion(collide_primitive);
-            }
-            if (primitive->GetMaterial()->refl > EPS) {
-                if (tracer.CalnReflection(collide_primitive, in.V, refl)) {
-                    ret |= REFLE_BIT;
-                }
-            }
-            if (primitive->GetMaterial()->refr > EPS) {
-                if (tracer.CalnRefraction(collide_primitive, in.V, refr)) {
-                    ret |= REFRA_BIT;
-                }
-            }
-        }
-    }
-    // nothing there, just background
-    else {
-        auto direction = in.V.GetUnitVector();
-        double t = 0.5 * (direction.z + 1.0);
-        in.myColor += tracer.GetBackgroundColor(t);
-    }
-
-    return ret;
-}
-
 
 void Render(Raytracer& tracer, int i, int j)
 {
@@ -83,13 +33,13 @@ void Render(Raytracer& tracer, int i, int j)
                 if (!rayIn->visited) {
                     Ray* rayRefl = rayIn->Generate();
                     Ray* rayRefr = rayIn->Generate();
-                    int res = TraceRay(tracer, *rayIn, *rayRefl, *rayRefr);
+                    int res = tracer.TraceRay(*rayIn, *rayRefl, *rayRefr);
                     // go on tracing
                     if (res != 0) {
-                        if (res & REFLE_BIT) {
+                        if (res & TRACER_REFLE_BIT) {
                             stack.push_back(rayRefl);
                         }
-                        if (res & REFRA_BIT) {
+                        if (res & TRACER_REFRA_BIT) {
                             stack.push_back(rayRefr);
                         }
                     }
@@ -116,6 +66,6 @@ void Render(Raytracer& tracer, int i, int j)
 }
 
 
-} /* CG_TRACING_H_ */
+} /* CG_RENDER_H_ */
 
-#endif /* CG_TRACING_H_ */
+#endif /* CG_RENDER_H_ */

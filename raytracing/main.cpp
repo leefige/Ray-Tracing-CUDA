@@ -1,17 +1,14 @@
 #include <iostream>
-#include <omp.h>
-
 #ifdef OLD_CXX
 #include <experimental/filesystem>    /* C++17 is required */
 #else
 #include <filesystem>    /* C++17 is required */
 #endif
 
-#include <thread>
+#include <omp.h>
 
-
-#include "tracing.h"
 #include "raytracer.h"
+#include "render.h"
 
 #ifdef OLD_CXX
 namespace fs = std::experimental::filesystem;
@@ -60,20 +57,10 @@ int main(int argc, char* argv[]) {
     raytracer->SetOutput(outputFile);
 
     raytracer->CreateAll();
-
     int H = raytracer->GetH(), W = raytracer->GetW();
 
-
 #ifdef _OPENMP
-    //omp_set_num_threads(12);
     omp_set_num_threads(raytracer->GetH());
-#endif
-
-    //raytracer->Run();
-    // raytracer->MultiThreadRun();
-    //raytracer->DebugRun(740,760,410,430);
-
-#ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < H; i++) {
@@ -82,15 +69,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    /*std::vector<std::thread> threads(H);
-    for (int i = 0; i < H; i++) {
-        threads[i] = std::thread(&MultiThreadFuncRender, raytracer, W, i);
-    }
-    for (int i = 0; i < H; i++) {
-        threads[i].join();
-    }*/
-
-    
     raytracer->Write();
     std::cout << "Output file saved at '" << fs::absolute(outputPath) << "'." << std::endl;
     return 0;

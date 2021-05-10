@@ -24,6 +24,9 @@ constexpr int HASH_FAC = 7;
 constexpr int HASH_MOD = 10000007;
 constexpr int NUM_RESAMPLE = 3;
 
+constexpr int TRACER_REFLE_BIT = 1;
+constexpr int TRACER_REFRA_BIT = 2;
+
 class Raytracer {
     std::string input , output;
     Scene scene;
@@ -31,21 +34,23 @@ class Raytracer {
     Color background_color_top;
     Color background_color_bottom;
     Camera* camera;
-    Color RayTracing( Vector3 ray_O , Vector3 ray_V , int dep , int* hash );
 
-    Color CalnDiffusion( CollidePrimitive collide_primitive , int* hash );
-    Color CalnReflection( CollidePrimitive collide_primitive , Vector3 ray_V , int dep , int* hash );
-    Color CalnRefraction( CollidePrimitive collide_primitive , Vector3 ray_V , int dep , int* hash );
+    Color CalnDiffusion(const CollidePrimitive& collide_primitive);
+    bool CalnReflection(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray);
+    bool CalnRefraction(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray);
+
+    Color GetBackgroundColor(const Vector3& V) const
+    {
+        auto direction = V.GetUnitVector();
+        double t = 0.5 * (direction.z + 1.0);
+        return background_color_bottom * (1.0 - t) + background_color_top * t;
+    }
 
 public:
     Raytracer();
     ~Raytracer() {}
 
-    Color CalnDiffusion(CollidePrimitive collide_primitive);
-    bool CalnReflection(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray);
-    bool CalnRefraction(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray);
-
-    Color GetBackgroundColor(double t) const { return background_color_bottom * (1.0 - t) + background_color_top * t; }
+    int TraceRay(Ray& in, Ray& refl, Ray& refr);
 
     void SetInput( std::string file ) { input = file; }
     void SetOutput( std::string file ) { output = file; }
@@ -53,17 +58,10 @@ public:
     void CreateAll();
     Primitive* CreateAndLinkLightPrimitive(Primitive* primitive_head);
 
-    void Run();
-    void DebugRun(int w1, int w2, int h1, int h2);
-    void MultiThreadRun();
-    void MultiThreadFuncCalColor(int i, int** sample);
-    void MultiThreadFuncResampling(int i, int** sample);
-
     int GetH() const { return camera->GetH(); }
     int GetW() const { return camera->GetW(); }
 
     Camera* GetCamera() { return camera; }
-    const Scene& GetScene() const { return scene; }
 
     void Write() const;
 };
@@ -77,7 +75,50 @@ Raytracer::Raytracer() {
     camera = new Camera;
 }
 
-Color Raytracer::CalnDiffusion(CollidePrimitive collide_primitive)
+int Raytracer::TraceRay(Ray& in, Ray& refl, Ray& refr)
+{
+    in.visited = true;
+    if (in.depth > MAX_RAYTRACING_DEP) {
+        return 0;
+    }
+
+    int ret = 0;
+
+    CollidePrimitive collide_primitive = scene.FindNearestPrimitiveGetCollide(in.O , in.V);
+
+    if (collide_primitive.isCollide) {
+        Primitive* primitive = collide_primitive.collide_primitive;
+        // light: end of tracing
+        if (primitive->IsLightPrimitive()) {
+            in.myColor += primitive->GetMaterial()->color;
+            //std::cout<<primitive->GetMaterial()->color.r;
+        }
+        // more rays!
+        else {
+            if (primitive->GetMaterial()->diff > EPS || primitive->GetMaterial()->spec > EPS) {
+                in.myColor += CalnDiffusion(collide_primitive);
+            }
+            if (primitive->GetMaterial()->refl > EPS) {
+                if (CalnReflection(collide_primitive, in.V, refl)) {
+                    ret |= TRACER_REFLE_BIT;
+                }
+            }
+            if (primitive->GetMaterial()->refr > EPS) {
+                if (CalnRefraction(collide_primitive, in.V, refr)) {
+                    ret |= TRACER_REFRA_BIT;
+                }
+            }
+        }
+    }
+    // nothing there, just background
+    else {
+        in.myColor += GetBackgroundColor(in.V);
+    }
+
+    return ret;
+}
+
+Color Raytracer::CalnDiffusion(const CollidePrimitive& collide_primitive)
 {
     Primitive* primitive = collide_primitive.collide_primitive;
     Color color = primitive->GetMaterial()->color;
@@ -119,7 +160,7 @@ Color Raytracer::CalnDiffusion(CollidePrimitive collide_primitive)
     return ret;
 }
 
-bool Raytracer::CalnReflection(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray)
+bool Raytracer::CalnReflection(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray)
 {
     Vector3 ray_V = in_V.Reflect( collide_primitive.N );
     Primitive* primitive = collide_primitive.collide_primitive;
@@ -170,7 +211,7 @@ bool Raytracer::CalnReflection(CollidePrimitive collide_primitive, const Vector3
     }
 }
 
-bool Raytracer::CalnRefraction(CollidePrimitive collide_primitive, const Vector3& in_V, Ray& ray)
+bool Raytracer::CalnRefraction(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray)
 {
     Primitive* primitive = collide_primitive.collide_primitive;
     double n = primitive->GetMaterial()->rindex;
@@ -192,154 +233,6 @@ bool Raytracer::CalnRefraction(CollidePrimitive collide_primitive, const Vector3
     ray.V = ray_V;
 
     return true;
-}
-
-Color Raytracer::CalnDiffusion(CollidePrimitive collide_primitive , int* hash )
-{
-    Primitive* primitive = collide_primitive.collide_primitive;
-    Color color = primitive->GetMaterial()->color;
-
-    // use texture if any
-    if (primitive->GetMaterial()->texture != NULL) {
-        color = color * collide_primitive.GetTexture();
-    }
-
-    // TODO: is this necessary???
-    //Color ret = color * background_color * primitive->GetMaterial()->diff;
-    Color ret;
-
-    for ( Light* light = light_head ; light != NULL ; light = light->GetNext() ) {
-        double shade = light->CalnShade(collide_primitive.C, scene.GetPrimitiveHead(), int(16 * camera->GetShadeQuality()));
-        if (shade < EPS) {
-            continue;
-        }
-
-        // now the light produces some shade on this diffuse point
-
-        // R: light ray from diffuse point to the light
-        Vector3 R = ( light->GetO() - collide_primitive.C ).GetUnitVector();
-        double dot = R.Dot( collide_primitive.N );
-        if (dot > EPS) {
-            if (hash != NULL && light->IsPointLight()) {
-                *hash = (*hash + light->GetSample()) & HASH_MOD;
-            }
-
-            // diffuse light
-            if ( primitive->GetMaterial()->diff > EPS ) {
-                double diff = primitive->GetMaterial()->diff * dot * shade;
-                ret += color * light->GetColor() * diff;
-            }
-            // specular light
-            if ( primitive->GetMaterial()->spec > EPS ) {
-                double spec = primitive->GetMaterial()->spec * pow( dot , SPEC_POWER ) * shade;
-                ret += color * light->GetColor() * spec;
-            }
-        }
-    }
-
-    return ret;
-}
-
-Color Raytracer::CalnReflection(CollidePrimitive collide_primitive , Vector3 ray_V , int dep , int* hash )
-{
-    ray_V = ray_V.Reflect( collide_primitive.N );
-    Primitive* primitive = collide_primitive.collide_primitive;
-
-    // only reflection
-    if (primitive->GetMaterial()->drefl < EPS || dep > MAX_DREFL_DEP) {
-        return RayTracing(collide_primitive.C, ray_V, dep + 1, hash) * primitive->GetMaterial()->color * primitive->GetMaterial()->refl;
-    }
-    // diffuse reflection (fuzzy reflection)
-    else {
-        // TODO: NEED TO IMPLEMENT
-
-        // Unit *circle* perpendicular to ray_V.
-        // This is different from sampling from a unit sphere -- when projecting the sphere
-        // to this circle the points are not uniformly distributed.
-        // However, considering the ExpBlur, this approximation may be justified.
-        auto baseX = ray_V.GetAnVerticalVector();
-        auto baseY = (ray_V * baseX).GetUnitVector();
-
-        // scale the circle according to drefl (fuzzy) value
-        baseX *= primitive->GetMaterial()->drefl;
-        baseY *= primitive->GetMaterial()->drefl;
-
-        Color diffReflected;
-        int numSamples = int(floor(16 * camera->GetDreflQuality()));
-        for (int i = 0; i < numSamples; i++) {
-            // ADD BLUR
-            auto xy = primitive->GetMaterial()->blur->GetXY();
-            auto& x = xy.first;
-            auto& y = xy.second;
-            auto fuzzy_V = ray_V + baseX * x + baseY * y;
-            diffReflected += RayTracing(collide_primitive.C, fuzzy_V, dep + 1, hash);
-        }
-        return diffReflected / numSamples * primitive->GetMaterial()->color * primitive->GetMaterial()->refl;
-    }
-}
-
-Color Raytracer::CalnRefraction(CollidePrimitive collide_primitive , Vector3 ray_V , int dep , int* hash )
-{
-    Primitive* primitive = collide_primitive.collide_primitive;
-    double n = primitive->GetMaterial()->rindex;
-    if (collide_primitive.front) {
-        n = 1 / n;
-    }
-
-    ray_V = ray_V.Refract( collide_primitive.N , n );
-    Color rcol = RayTracing( collide_primitive.C , ray_V , dep + 1 , hash );
-
-    if (collide_primitive.front) {
-        return rcol * primitive->GetMaterial()->refr;
-    }
-
-    Color absor = primitive->GetMaterial()->absor * -collide_primitive.dist;
-    Color trans = Color( exp( absor.r ) , exp( absor.g ) , exp( absor.b ) );
-    return rcol * trans * primitive->GetMaterial()->refr;
-}
-
-Color Raytracer::RayTracing( Vector3 ray_O , Vector3 ray_V , int dep , int* hash )
-{
-    if (dep > MAX_RAYTRACING_DEP) {
-        return Color();
-    }
-
-    Color ret;
-    CollidePrimitive collide_primitive = scene.FindNearestPrimitiveGetCollide( ray_O , ray_V );
-
-    if (collide_primitive.isCollide) {
-        if (hash != NULL) {
-            *hash = (*hash + collide_primitive.collide_primitive->GetSample()) % HASH_MOD;
-        }
-        Primitive* primitive = collide_primitive.collide_primitive;
-        if ( primitive->IsLightPrimitive() ) {
-            ret += primitive->GetMaterial()->color;
-            //std::cout<<primitive->GetMaterial()->color.r;
-        }
-        else {
-            if (primitive->GetMaterial()->diff > EPS || primitive->GetMaterial()->spec > EPS) {
-                ret += CalnDiffusion(collide_primitive, hash);
-            }
-            if (primitive->GetMaterial()->refl > EPS) {
-                ret += CalnReflection(collide_primitive, ray_V, dep, hash);
-            }
-            if (primitive->GetMaterial()->refr > EPS) {
-                ret += CalnRefraction(collide_primitive, ray_V, dep, hash);
-            }
-        }
-    }
-    // nothing there, just background
-    else {
-        auto direction = ray_V.GetUnitVector();
-        double t = 0.5 * (direction.z + 1.0);
-        ret = background_color_bottom * (1.0 - t) + background_color_top * t;
-    }
-
-    if (hash != NULL) {
-        *hash = (*hash * HASH_FAC) % HASH_MOD;
-    }
-    ret.Confine();
-    return ret;
 }
 
 Primitive* Raytracer::CreateAndLinkLightPrimitive(Primitive* primitive_head)
@@ -435,173 +328,6 @@ void Raytracer::CreateAll()
 
     scene.CreateScene(CreateAndLinkLightPrimitive(primitive_head));
     camera->Initialize();
-}
-
-void Raytracer::Run()
-{
-    CreateAll();
-
-    Vector3 ray_O = camera->GetO();
-    int H = camera->GetH() , W = camera->GetW();
-
-    int** sample = new int*[H];
-    for ( int i = 0 ; i < H ; i++ ) {
-        sample[i] = new int[W];
-        for (int j = 0; j < W; j++) {
-            sample[i][j] = 0;
-        }
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    //for ( int i = 0 ; i < H ; std::cout << "Sampling:   " << ++i << "/" << H << std::endl )
-    for (int i = 0; i < H; i++) {
-        for (int j = 0; j < W; j++) {
-            Vector3 ray_V = camera->Emit(i, j);
-            Color color = RayTracing(ray_O, ray_V, 1, &sample[i][j]);
-            camera->SetColor(i, j, color);
-        }
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    //for ( int i = 0 ; i < H ; std::cout << "Resampling: " << ++i << "/" << H << std::endl )
-    for (int i = 0; i < H; i++) {
-        for (int j = 0; j < W; j++) {
-            if ((i == 0 || sample[i][j] == sample[i - 1][j]) && (i == H - 1 || sample[i][j] == sample[i + 1][j]) &&
-                (j == 0 || sample[i][j] == sample[i][j - 1]) && (j == W - 1 || sample[i][j] == sample[i][j + 1])) continue;
-
-            Color color;
-            for (int r = -NUM_RESAMPLE; r <= NUM_RESAMPLE; r++) {
-                for (int c = -NUM_RESAMPLE; c <= NUM_RESAMPLE; c++) {
-                    Vector3 ray_V = camera->Emit(i + (double)r / (NUM_RESAMPLE * 2 + 1), j + (double)c / (NUM_RESAMPLE * 2 + 1));
-                    color += RayTracing(ray_O, ray_V, 1, nullptr) / pow((NUM_RESAMPLE * 2 + 1), 2);
-                }
-            }
-            camera->SetColor(i, j, color);
-        }
-    }
-
-    for (int i = 0; i < H; i++) {
-        delete[] sample[i];
-    }
-    delete[] sample;
-
-    Bmp* bmp = new Bmp( H , W );
-    camera->Output( bmp );
-    bmp->Output( output );
-    delete bmp;
-}
-
-void Raytracer::DebugRun(int w1, int w2, int h1, int h2)
-{
-    CreateAll();
-
-    Vector3 ray_O = camera->GetO();
-    int H = camera->GetH() , W = camera->GetW();
-    int** sample = new int*[H];
-    for ( int i = 0 ; i < H ; i++ ) {
-        sample[i] = new int[W];
-        for ( int j = 0 ; j < W ; j++ )
-            sample[i][j] = 0;
-    }
-    h1 = H - h1;
-    h2 = H - h2;
-    //for ( int i = 0 ; i < H ; std::cout << "Sampling:   " << ++i << "/" << H << std::endl )
-    for(int i=h2;i<h1;i++)
-        for ( int j = w1 ; j < w2 ; j++ ) {
-            Vector3 ray_V = camera->Emit( i , j );
-            Color color = RayTracing( ray_O , ray_V , 1 , &sample[i][j] );
-            camera->SetColor( i , j , color );
-        }
-
-    for ( int i = 0 ; i < H ; i++ )
-        delete[] sample[i];
-    delete[] sample;
-
-    Bmp* bmp = new Bmp( H , W );
-    camera->Output( bmp );
-    bmp->Output( output );
-    delete bmp;
-}
-
-void Raytracer::MultiThreadFuncCalColor(int i, int** sample)
-{
-    srand(i);
-    Vector3 ray_O = camera->GetO();
-    int W = camera->GetW();
-    for (int j = 0 ; j < W ; j++) {
-        Vector3 ray_V = camera->Emit( i , j );
-        Color color = RayTracing( ray_O , ray_V , 1 , &sample[i][j] );
-        camera->SetColor( i , j , color );
-    }
-}
-
-void Raytracer::MultiThreadFuncResampling(int i, int** sample)
-{
-    Vector3 ray_O = camera->GetO();
-    int H = camera->GetH() , W = camera->GetW();
-    for ( int j = 0 ; j < W ; j++ ) {
-        if ( ( i == 0 || sample[i][j] == sample[i - 1][j] ) && ( i == H - 1 || sample[i][j] == sample[i + 1][j] ) &&
-                ( j == 0 || sample[i][j] == sample[i][j - 1] ) && ( j == W - 1 || sample[i][j] == sample[i][j + 1] ) ) continue;
-
-        Color color;
-        for (int r = -NUM_RESAMPLE; r <= NUM_RESAMPLE; r++) {
-            for (int c = -NUM_RESAMPLE; c <= NUM_RESAMPLE; c++) {
-                Vector3 ray_V = camera->Emit(i + (double)r / (NUM_RESAMPLE * 2 + 1), j + (double)c / (NUM_RESAMPLE * 2 + 1));
-                color += RayTracing(ray_O, ray_V, 1, nullptr) / pow((NUM_RESAMPLE * 2 + 1), 2);
-            }
-        }
-        camera->SetColor( i , j , color );
-    }
-}
-
-
-void Raytracer::MultiThreadRun()
-{
-    CreateAll();
-
-    Vector3 ray_O = camera->GetO();
-    int H = camera->GetH() , W = camera->GetW();
-    int** sample = new int*[H];
-    for ( int i = 0 ; i < H ; i++ ) {
-        sample[i] = new int[W];
-        for ( int j = 0 ; j < W ; j++ )
-            sample[i][j] = 0;
-    }
-
-    std::vector<std::thread> threads(H);
-    std::cout << "Reday to sample" << std::endl;
-    //for ( int i = 0 ; i < H ; std::cout << "Sampling:   " << ++i << "/" << H << std::endl )
-    for (int i = 0; i < H; i++) {
-        threads[i] = std::thread(&Raytracer::MultiThreadFuncCalColor, this, i, sample);
-    }
-    for (int i = 0; i < H; i++) {
-        threads[i].join();
-    }
-    std::cout << "Reday to re-sample" << std::endl;
-
-    //for ( int i = 0 ; i < H ; std::cout << "Resampling: " << ++i << "/" << H << std::endl )
-    for (int i = 0; i < H; i++) {
-        threads[i] = std::thread(&Raytracer::MultiThreadFuncResampling, this, i, sample);
-    }
-    for (int i = 0; i < H; i++) {
-        threads[i].join();
-    }
-
-    for (int i = 0; i < H; i++) {
-        delete[] sample[i];
-    }
-    delete[] sample;
-
-    std::cout << "Reday to write bmp" << std::endl;
-
-    Bmp* bmp = new Bmp( H , W );
-    camera->Output( bmp );
-    bmp->Output( output );
-    delete bmp;
 }
 
 void Raytracer::Write() const
