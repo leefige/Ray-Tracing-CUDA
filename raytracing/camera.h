@@ -22,7 +22,7 @@ class Camera
     Vector3 O , N , Dx , Dy;
     float lens_W , lens_H;
     int W , H;
-    Color** data;
+    Color* data;
     float shade_quality;
     float drefl_quality;
     int max_photons;
@@ -31,15 +31,15 @@ class Camera
     float sample_dist;
 
 public:
-    Camera();
-    ~Camera();
-
     __device__ Vector3 GetO() { return O; }
 
     __host__ __device__ int GetW() { return W; }
     __host__ __device__ int GetH() { return H; }
 
-    __device__ void SetColor( int i , int j , Color color ) { data[i][j] = color; }
+    __device__ void SetColor( int i , int j , Color color )
+    {
+        data[i * W + j] = color;
+    }
     __device__ float GetShadeQuality() { return shade_quality; }
     __device__ float GetDreflQuality() { return drefl_quality; }
     __device__ int GetMaxPhotons() { return max_photons; }
@@ -48,14 +48,17 @@ public:
     __device__ float GetSampleDist() { return sample_dist; }
 
     __device__ Vector3 Emit( float i , float j );
-    __device__ void Initialize();
+
+    void HostInit();
+    void DeviceInit(Color* buf);
+
     void Input( std::string var , std::stringstream& fin );
     void Output( Bmp* );
 };
 
 // ===================================================
 
-Camera::Camera()
+void Camera::HostInit()
 {
     O = Vector3( 0 , 0 , 0 );
     N = Vector3( 0 , 1 , 0 );
@@ -72,17 +75,7 @@ Camera::Camera()
     data = nullptr;
 }
 
-Camera::~Camera()
-{
-    if (data != nullptr) {
-        for (int i = 0; i < H; i++) {
-            delete[] data[i];
-        }
-        delete[] data;
-    }
-}
-
-__device__ void Camera::Initialize()
+void Camera::DeviceInit(Color* buf)
 {
     N = N.GetUnitVector();
     Dx = N.GetAnVerticalVector();
@@ -90,10 +83,7 @@ __device__ void Camera::Initialize()
     Dx = Dx * lens_W / 2;
     Dy = Dy * lens_H / 2;
 
-    data = new Color*[H];
-    for (int i = 0; i < H; i++) {
-        data[i] = new Color[W];
-    }
+    data = buf;
 }
 
 __device__ Vector3 Camera::Emit( float i , float j )
@@ -126,7 +116,7 @@ void Camera::Output( Bmp* bmp )
 
     for (int i = 0; i < H; i++) {
         for (int j = 0; j < W; j++) {
-            bmp->SetColor(i, j, data[i][j]);
+            bmp->SetColor(i, j, data[i * W + j]);
         }
     }
 }

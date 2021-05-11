@@ -8,15 +8,28 @@
 // #include "vector3.h"
 // #include "raytracer.h"
 
+#include "camera.h"
+
 #include "cutils.h"
 
 namespace cg
 {
 
+// __global__ void Init(Camera** camera_p)
+// {
+//     (*camera_p) = new Camera();
+//     (*camera_p)->Initialize();
+// }
+
+// __global__ void Finalize(Camera* camera, Color* out)
+// {
+//     camera->Output(out);
+// }
+
 #ifndef TESTING
 __global__ void Render(Raytracer& tracer, const int max_i, const int max_j)
 #else
-__global__ void Render(Color* fb, const int max_i, const int max_j)
+__global__ void Render(Camera* fb, const int max_i, const int max_j)
 #endif
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -78,7 +91,7 @@ __global__ void Render(Color* fb, const int max_i, const int max_j)
     camera->SetColor(i, j, pixel);
 #else
     Color pixel(float(i) / max_i, float(j) / max_j, 0.2);
-    fb[i * max_j + j] = pixel;
+    fb->SetColor(i, j, pixel);
 #endif
 
 }

@@ -8,9 +8,11 @@
 #include <omp.h>
 
 // #include "raytracer.h"
+#include "camera.h"
 #include "color.h"
 #include "bmp.h"
 #include "render.h"
+
 #include "cutils.h"
 
 #ifdef OLD_CXX
@@ -58,7 +60,7 @@ int main(int argc, char* argv[]) {
     raytracer->CreateAll();
     int H = raytracer->GetH(), W = raytracer->GetW();
 #else
-    int H = 480, W = 640;
+    int H = STD_IMAGE_HEIGHT, W = STD_IMAGE_WIDTH;
 #endif
 
     // Render our buffer
@@ -67,15 +69,25 @@ int main(int argc, char* argv[]) {
     dim3 blocks(blockX, blockY);
     dim3 threads(TX, TY);
 
+    std::cout << "blocks: (" << blockX << "," << blockY << ")" << std::endl;
+
 #ifndef TESTING
     Render<<<blocks, threads>>>(*raytracer, H, W);
 #else
+    Camera* camera;
+    checkCudaErrors(cudaMallocManaged((void **)&camera, sizeof(Camera)));
+    camera->HostInit();
+
     Color* fb;
-    checkCudaErrors(cudaMallocManaged((void **)&fb, H * W * sizeof(Color)));
-    Render<<<blocks, threads>>>(fb, H, W);
-#endif
+    checkCudaErrors(cudaMallocManaged((void **)&fb, sizeof(Color) * H * W));
+
+    camera->DeviceInit(fb);
+
+    Render<<<blocks, threads>>>(camera, H, W);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
+#endif
+
 
 // #ifdef _OPENMP
 //     omp_set_num_threads(raytracer->GetH());
@@ -92,11 +104,7 @@ int main(int argc, char* argv[]) {
 #else
     Bmp bmp;
     bmp.Initialize(H , W);
-    for (int i = 0; i < H; i++) {
-        for (int j = 0; j < W; j++) {
-            bmp.SetColor(i, j, fb[i * W + j]);
-        }
-    }
+    (camera)->Output(&bmp);
     bmp.Output(outputFile);
 #endif
 

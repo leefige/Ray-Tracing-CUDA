@@ -47,13 +47,13 @@ public:
     __host__ __device__ Vector3 Reflect( Vector3 N ) const;
     __host__ __device__ Vector3 Refract( Vector3 N , float n ) const;
     /* Generate a random vector with the same length above the tangent plaine. */
-    __host__ __device__ Vector3 Diffuse() const;
+    __device__ Vector3 Diffuse() const;
     __host__ __device__ Vector3 Rotate( Vector3 axis , float theta ) const;
 
     __host__ __device__ float& GetCoord(int axis);
 
     void Input(std::stringstream& fin);
-    __host__ __device__ void AssRandomVector();
+    __device__ void AssRandomVector();
 };
 
 // ===============================================================
@@ -182,7 +182,7 @@ __host__ __device__ Vector3 Vector3::GetUnitVector() const
     return *this / Module();
 }
 
-__host__ __device__ void Vector3::AssRandomVector()
+__device__ void Vector3::AssRandomVector()
 {
     do {
         x = 2 * preciseRan() - 1;
@@ -226,7 +226,7 @@ __host__ __device__ Vector3 Vector3::Refract( Vector3 N , float n ) const
     return V.Reflect( N );
 }
 
-__host__ __device__ __host__ __device__ Vector3 Vector3::Diffuse() const
+__device__ Vector3 Vector3::Diffuse() const
 {
     Vector3 Vert = GetAnVerticalVector();
     // sqrt to avoid too small value

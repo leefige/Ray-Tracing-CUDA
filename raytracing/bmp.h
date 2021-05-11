@@ -55,7 +55,7 @@ struct IMAGEDATA
     byte green;
     byte blue;
     Color GetColor() {
-        return Color( red , green , blue ) / 256.0;
+        return Color(red / 256.0f, green / 256.0f, blue / 256.0f);
     }
 };
 
