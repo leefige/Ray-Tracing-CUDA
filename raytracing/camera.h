@@ -34,19 +34,21 @@ public:
     Camera();
     ~Camera();
 
-    Vector3 GetO() { return O; }
-    int GetW() { return W; }
-    int GetH() { return H; }
-    void SetColor( int i , int j , Color color ) { data[i][j] = color; }
-    float GetShadeQuality() { return shade_quality; }
-    float GetDreflQuality() { return drefl_quality; }
-    int GetMaxPhotons() { return max_photons; }
-    int GetEmitPhotons() { return emit_photons; }
-    int GetSamplePhotons() { return sample_photons; }
-    float GetSampleDist() { return sample_dist; }
+    __device__ Vector3 GetO() { return O; }
 
-    Vector3 Emit( float i , float j );
-    void Initialize();
+    __host__ __device__ int GetW() { return W; }
+    __host__ __device__ int GetH() { return H; }
+
+    __device__ void SetColor( int i , int j , Color color ) { data[i][j] = color; }
+    __device__ float GetShadeQuality() { return shade_quality; }
+    __device__ float GetDreflQuality() { return drefl_quality; }
+    __device__ int GetMaxPhotons() { return max_photons; }
+    __device__ int GetEmitPhotons() { return emit_photons; }
+    __device__ int GetSamplePhotons() { return sample_photons; }
+    __device__ float GetSampleDist() { return sample_dist; }
+
+    __device__ Vector3 Emit( float i , float j );
+    __device__ void Initialize();
     void Input( std::string var , std::stringstream& fin );
     void Output( Bmp* );
 };
@@ -80,7 +82,7 @@ Camera::~Camera()
     }
 }
 
-void Camera::Initialize()
+__device__ void Camera::Initialize()
 {
     N = N.GetUnitVector();
     Dx = N.GetAnVerticalVector();
@@ -94,7 +96,7 @@ void Camera::Initialize()
     }
 }
 
-Vector3 Camera::Emit( float i , float j )
+__device__ Vector3 Camera::Emit( float i , float j )
 {
     return N + Dy * ( 2 * i / H - 1 ) + Dx * ( 2 * j / W - 1 );
 }

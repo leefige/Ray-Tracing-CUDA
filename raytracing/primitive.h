@@ -9,7 +9,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include "color.h"
 #include "vector3.h"
@@ -36,7 +35,7 @@ const int MAX_COLLIDE_RANDS = 10;
 class Blur
 {
 public:
-    virtual std::pair<float, float> GetXY() = 0;
+    __device__ virtual void GetXY(float& x_out, float& y_out) = 0;
 };
 
 class ExpBlur : public Blur
@@ -45,7 +44,7 @@ public:
     /* return x & y coord of a random point inside a unit sphere,
        with radius following an exponential sampling.
     */
-    std::pair<float, float> GetXY();
+    __device__ virtual void GetXY(float& x_out, float& y_out);
 };
 
 class Material
@@ -80,16 +79,16 @@ public:
     Primitive( const Primitive& );
     ~Primitive();
 
-    int GetSample() const { return sample; }
-    Material* GetMaterial() { return material; }
-    Primitive* GetNext() { return next; }
-    void SetNext( Primitive* primitive ) { next = primitive; }
+    __device__ int GetSample() const { return sample; }
+    __device__ Material* GetMaterial() { return material; }
+    __device__ Primitive* GetNext() { return next; }
+    __device__ void SetNext( Primitive* primitive ) { next = primitive; }
 
     virtual void Input( std::string , std::stringstream& );
-    virtual bool IsLightPrimitive() const { return false; }
+    __device__ virtual bool IsLightPrimitive() const { return false; }
 
-    virtual CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V ) = 0;
-    virtual Color GetTexture(Vector3 crash_C) = 0;
+    __device__ virtual CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V ) = 0;
+    __device__ virtual Color GetTexture(Vector3 crash_C) = 0;
 };
 
 struct CollidePrimitive
@@ -100,7 +99,7 @@ struct CollidePrimitive
     float dist;
     bool front;
     CollidePrimitive() : isCollide(false), collide_primitive(NULL), dist(BIG_DIST) { }
-    Color GetTexture() const { return collide_primitive->GetTexture(C); }
+    __device__ Color GetTexture() const { return collide_primitive->GetTexture(C); }
 };
 
 class Sphere : public Primitive
@@ -114,8 +113,8 @@ public:
     ~Sphere() {}
 
     void Input( std::string , std::stringstream& );
-    CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
-    Color GetTexture(Vector3 crash_C);
+    __device__ CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
+    __device__ Color GetTexture(Vector3 crash_C);
 };
 
 class SphereLightPrimitive : public Sphere
@@ -123,7 +122,7 @@ class SphereLightPrimitive : public Sphere
 public:
     SphereLightPrimitive(Vector3 pO, float pR, Color color) : Sphere()
     {O = pO; R = pR; material->color = color; }
-    bool IsLightPrimitive(){return true;}
+    __device__ virtual bool IsLightPrimitive() const { return true; }
 };
 
 class Plane : public Primitive
@@ -137,8 +136,8 @@ public:
     ~Plane() {}
 
     void Input( std::string , std::stringstream& );
-    CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
-    Color GetTexture(Vector3 crash_C);
+    __device__ CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
+    __device__ Color GetTexture(Vector3 crash_C);
 };
 
 class Square : public Primitive
@@ -151,8 +150,8 @@ public:
     ~Square() {}
 
     void Input( std::string , std::stringstream& );
-    CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
-    Color GetTexture(Vector3 crash_C);
+    __device__ CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
+    __device__ Color GetTexture(Vector3 crash_C);
 };
 
 class PlaneAreaLightPrimitive : public Square
@@ -160,7 +159,7 @@ class PlaneAreaLightPrimitive : public Square
 public:
     explicit PlaneAreaLightPrimitive(Vector3 pO, Vector3 pDx, Vector3 pDy, Color color): Square()
     {O = pO; Dx = pDx; Dy = pDy; material->color = color; }
-    bool IsLightPrimitive(){return true;}
+    __device__ virtual bool IsLightPrimitive() const { return true; }
 };
 
 class Cylinder : public Primitive
@@ -174,42 +173,44 @@ public:
     ~Cylinder() {}
 
     void Input( std::string , std::stringstream& );
-    CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
-    Color GetTexture(Vector3 crash_C);
+    __device__ CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
+    __device__ Color GetTexture(Vector3 crash_C);
 };
 
 class Bezier : public Primitive
 {
     Vector3 O1, O2;
     Vector3 N, Nx, Ny;
-    std::vector<float> R;
-    std::vector<float> Z;
+    float R[BEZIER_MAX_DEGREE + 1];
+    float Z[BEZIER_MAX_DEGREE + 1];
     int degree;
     Cylinder* boundingCylinder;
 
 public:
-    Bezier() : Primitive() {boundingCylinder = NULL; degree = -1;}
+    Bezier() : Primitive(), R{0}, Z{0} { boundingCylinder = NULL; degree = -1; }
     ~Bezier() {}
 
     void Input( std::string , std::stringstream& );
-    CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
-    Color GetTexture(Vector3 crash_C);
+    __device__ CollidePrimitive Collide( Vector3 ray_O , Vector3 ray_V );
+    __device__ Color GetTexture(Vector3 crash_C);
 
 private:
-    std::pair<float, float> valueAt(float u);
-    std::pair<float, float> valueAt(float u, const std::vector<float>& xs, const std::vector<float>& ys);
+    __device__ void valueAt(float u, float& x_out, float& y_out);
+    __device__ void valueAt(float u, float& x_out, float& y_out, int degree, const float xs[], const float ys[]);
 };
 
 // =======================================================
 
-std::pair<float, float> ExpBlur::GetXY()
+__device__ void ExpBlur::GetXY(float& x_out, float& y_out)
 {
-    float x,y;
-    x = ran();
+    float x = ran();
     // x in [0, 1), but with a higher prob to be a small value
     x = pow(2, x)-1;
-    y = rand();
-    return std::pair<float, float>(x*cos(y),x*sin(y));
+    // TODO: rand
+    float y = ran();
+
+    x_out = x*cos(y);
+    y_out = x*sin(y);
 }
 
 // ====================================================
@@ -282,7 +283,7 @@ void Sphere::Input( std::string var , std::stringstream& fin ) {
     Primitive::Input( var , fin );
 }
 
-CollidePrimitive Sphere::Collide( Vector3 ray_O , Vector3 ray_V ) {
+__device__ CollidePrimitive Sphere::Collide( Vector3 ray_O , Vector3 ray_V ) {
     ray_V = ray_V.GetUnitVector();
     Vector3 P = ray_O - O;
     float b = -P.Dot( ray_V );
@@ -313,10 +314,10 @@ CollidePrimitive Sphere::Collide( Vector3 ray_O , Vector3 ray_V ) {
     return ret;
 }
 
-Color Sphere::GetTexture(Vector3 crash_C) {
+__device__ Color Sphere::GetTexture(Vector3 crash_C) {
     Vector3 I = ( crash_C - O ).GetUnitVector();
     float a = acos( -I.Dot( De ) );
-    float b = acos( std::min( std::max( I.Dot( Dc ) / sin( a ) , -1.0 ) , 1.0 ) );
+    float b = acos( min( max( I.Dot( Dc ) / sin( a ) , -1.0f ) , 1.0f ) );
     float u = a / PI , v = b / 2 / PI;
     if ( I.Dot( Dc * De ) < 0 ) v = 1 - v;
     return material->texture->GetSmoothColor( u , v );
@@ -332,7 +333,7 @@ void Plane::Input( std::string var , std::stringstream& fin ) {
     Primitive::Input( var , fin );
 }
 
-CollidePrimitive Plane::Collide( Vector3 ray_O , Vector3 ray_V ) {
+__device__ CollidePrimitive Plane::Collide( Vector3 ray_O , Vector3 ray_V ) {
     ray_V = ray_V.GetUnitVector();
     N = N.GetUnitVector();
     float d = N.Dot( ray_V );
@@ -350,7 +351,7 @@ CollidePrimitive Plane::Collide( Vector3 ray_O , Vector3 ray_V ) {
     return ret;
 }
 
-Color Plane::GetTexture(Vector3 crash_C) {
+__device__ Color Plane::GetTexture(Vector3 crash_C) {
     float u = crash_C.Dot( Dx ) / Dx.Module2();
     float v = crash_C.Dot( Dy ) / Dy.Module2();
     return material->texture->GetSmoothColor( u , v );
@@ -365,7 +366,7 @@ void Square::Input( std::string var , std::stringstream& fin ) {
     Primitive::Input( var , fin );
 }
 
-CollidePrimitive Square::Collide( Vector3 ray_O , Vector3 ray_V ) {
+__device__ CollidePrimitive Square::Collide( Vector3 ray_O , Vector3 ray_V ) {
     CollidePrimitive ret;
 
     // TODO: NEED TO IMPLEMENT
@@ -403,7 +404,7 @@ CollidePrimitive Square::Collide( Vector3 ray_O , Vector3 ray_V ) {
     return ret;
 }
 
-Color Square::GetTexture(Vector3 crash_C) {
+__device__ Color Square::GetTexture(Vector3 crash_C) {
     float u = (crash_C - O).Dot( Dx ) / Dx.Module2() / 2 + 0.5;
     float v = (crash_C - O).Dot( Dy ) / Dy.Module2() / 2 + 0.5;
     return material->texture->GetSmoothColor( u , v );
@@ -418,7 +419,7 @@ void Cylinder::Input( std::string var , std::stringstream& fin ) {
     Primitive::Input( var , fin );
 }
 
-CollidePrimitive Cylinder::Collide( Vector3 ray_O , Vector3 ray_V ) {
+__device__ CollidePrimitive Cylinder::Collide( Vector3 ray_O , Vector3 ray_V ) {
     CollidePrimitive ret;
 
     // TODO: NEED TO IMPLEMENT
@@ -544,7 +545,7 @@ CollidePrimitive Cylinder::Collide( Vector3 ray_O , Vector3 ray_V ) {
     return ret;
 }
 
-Color Cylinder::GetTexture(Vector3 crash_C) {
+__device__ Color Cylinder::GetTexture(Vector3 crash_C) {
     float u = 0.5 ,v = 0.5;
 
     // TODO: NEED TO IMPLEMENT
@@ -587,12 +588,12 @@ void Bezier::Input( std::string var , std::stringstream& fin ) {
         degree++;
         float newR, newZ;
         fin>>newZ>>newR;
-        R.push_back(newR);
-        Z.push_back(newZ);
+        R[degree] = newR;
+        Z[degree] = newZ;
     }
     if ( var == "Cylinder" ) {
         float maxR = 0;
-        for (int i = 0; i < R.size(); i++) {
+        for (int i = 0; i <= degree; i++) {
             if (R[i] > maxR) {
                 maxR = R[i];
             }
@@ -605,7 +606,7 @@ void Bezier::Input( std::string var , std::stringstream& fin ) {
     Primitive::Input( var , fin );
 }
 
-CollidePrimitive Bezier::Collide( Vector3 ray_O , Vector3 ray_V ) {
+__device__ CollidePrimitive Bezier::Collide( Vector3 ray_O , Vector3 ray_V ) {
     CollidePrimitive ret;
 
     // TODO: NEED TO IMPLEMENT
@@ -685,16 +686,17 @@ CollidePrimitive Bezier::Collide( Vector3 ray_O , Vector3 ray_V ) {
     Vector3 P_prim = P - O2;
 
     // tangent
-    std::vector<float> subX;
-    std::vector<float> subY;
-    const int degree = x.size() - 1;
+    float subX[BEZIER_MAX_DEGREE];
+    float subY[BEZIER_MAX_DEGREE];
     for (int i = 0; i < degree; i++) {
-        subX.push_back(degree * (x[i + 1] - x[i]));
-        subY.push_back(degree * (y[i + 1] - y[i]));
+        subX[i] = degree * (x[i + 1] - x[i]);
+        subY[i] = degree * (y[i + 1] - y[i]);
     }
-    auto tangentPair = valueAt(minU, subX, subY);
+
+    float first, second;
+    valueAt(minU, first, second, degree - 1, subX, subY);
     // Tangent = (tangentPair.second, 0, tangentPair.first)
-    Vector3 Norm(1 / tangentPair.second, 0, -1 / tangentPair.first);  // in corrd O2-Nx-Ny-N
+    Vector3 Norm(1 / second, 0, -1 / first);  // in corrd O2-Nx-Ny-N
     Norm = Norm.GetUnitVector();
     Norm = Nx * Norm.x + Ny * Norm.y + N * Norm.z;  // in corrd O-X-Y-Z
     Norm = Norm.GetUnitVector();
@@ -723,7 +725,7 @@ CollidePrimitive Bezier::Collide( Vector3 ray_O , Vector3 ray_V ) {
 
 }
 
-Color Bezier::GetTexture(Vector3 crash_C) {
+__device__ Color Bezier::GetTexture(Vector3 crash_C) {
     float u = 0.5 ,v = 0.5;
 
     // TODO: NEED TO IMPLEMENT
@@ -742,15 +744,14 @@ Color Bezier::GetTexture(Vector3 crash_C) {
     return material->texture->GetSmoothColor( u , v );
 }
 
-std::pair<float, float> Bezier::valueAt(float u)
+__device__ void Bezier::valueAt(float u, float& x, float& y)
 {
-    return valueAt(u, Z, R);
+    valueAt(u, x, y, degree, Z, R);
 }
 
 
-std::pair<float, float> Bezier::valueAt(float u, const std::vector<float>& xs, const std::vector<float>& ys)
+__device__ void Bezier::valueAt(float u, float& x_out, float& y_out, int degree, const float xs[], const float ys[])
 {
-    const int degree = xs.size() - 1;
     float x = 0;
     float y = 0;
     for (int i = 0; i <= degree; i++) {
@@ -758,7 +759,8 @@ std::pair<float, float> Bezier::valueAt(float u, const std::vector<float>& xs, c
         x += factor * xs[i];
         y += factor * ys[i];
     }
-    return std::make_pair(x, y);
+    x_out = x;
+    y_out = y;
 }
 
 } /* namespace cg */

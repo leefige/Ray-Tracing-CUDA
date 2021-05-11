@@ -7,8 +7,11 @@
 
 #include <omp.h>
 
-#include "raytracer.h"
+// #include "raytracer.h"
+#include "color.h"
+#include "bmp.h"
 #include "render.h"
+#include "cutils.h"
 
 #ifdef OLD_CXX
 namespace fs = std::experimental::filesystem;
@@ -17,6 +20,9 @@ namespace fs = std::filesystem;
 #endif
 
 using namespace cg;
+
+constexpr int TX = 8;
+constexpr int TY = 8;
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -44,34 +50,56 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    int tx = 8;
-    int ty = 8;
-
+#ifndef TESTING
     Raytracer* raytracer = new Raytracer;
     raytracer->SetInput(inputFile);
     raytracer->SetOutput(outputFile);
 
     raytracer->CreateAll();
     int H = raytracer->GetH(), W = raytracer->GetW();
+#else
+    int H = 480, W = 640;
+#endif
 
     // Render our buffer
-    dim3 blocks(nx/tx+1,ny/ty+1);
-    dim3 threads(tx,ty);
-    render<<<blocks, threads>>>(fb, nx, ny);
+    int blockX = int(ceil(float(H) / TX));
+    int blockY = int(ceil(float(W) / TY));
+    dim3 blocks(blockX, blockY);
+    dim3 threads(TX, TY);
+
+#ifndef TESTING
+    Render<<<blocks, threads>>>(*raytracer, H, W);
+#else
+    Color* fb;
+    checkCudaErrors(cudaMallocManaged((void **)&fb, H * W * sizeof(Color)));
+    Render<<<blocks, threads>>>(fb, H, W);
+#endif
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
-#ifdef _OPENMP
-    omp_set_num_threads(raytracer->GetH());
-#pragma omp parallel for
-#endif
+// #ifdef _OPENMP
+//     omp_set_num_threads(raytracer->GetH());
+// #pragma omp parallel for
+// #endif
+//     for (int i = 0; i < H; i++) {
+//         for (int j = 0; j < W; j++) {
+//             Render(*raytracer, i, j);
+//         }
+//     }
+
+#ifndef TESTING
+    raytracer->Write();
+#else
+    Bmp bmp;
+    bmp.Initialize(H , W);
     for (int i = 0; i < H; i++) {
         for (int j = 0; j < W; j++) {
-            Render(*raytracer, i, j);
+            bmp.SetColor(i, j, fb[i * W + j]);
         }
     }
+    bmp.Output(outputFile);
+#endif
 
-    raytracer->Write();
     std::cout << "Output file saved at '" << fs::absolute(outputPath) << "'." << std::endl;
     return 0;
 }

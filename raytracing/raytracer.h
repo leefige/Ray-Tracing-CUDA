@@ -35,11 +35,11 @@ class Raytracer {
     Color background_color_bottom;
     Camera* camera;
 
-    Color CalnDiffusion(const CollidePrimitive& collide_primitive);
-    bool CalnReflection(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray);
-    bool CalnRefraction(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray);
+    __device__ Color CalnDiffusion(const CollidePrimitive& collide_primitive);
+    __device__ bool CalnReflection(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray);
+    __device__ bool CalnRefraction(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray);
 
-    Color GetBackgroundColor(const Vector3& V) const
+    __device__ Color GetBackgroundColor(const Vector3& V) const
     {
         auto direction = V.GetUnitVector();
         float t = 0.5 * (direction.z + 1.0);
@@ -50,7 +50,7 @@ public:
     Raytracer();
     ~Raytracer() {}
 
-    int TraceRay(Ray& in, Ray& refl, Ray& refr);
+    __device__ int TraceRay(Ray& in, Ray& refl, Ray& refr);
 
     void SetInput( std::string file ) { input = file; }
     void SetOutput( std::string file ) { output = file; }
@@ -58,10 +58,10 @@ public:
     void CreateAll();
     Primitive* CreateAndLinkLightPrimitive(Primitive* primitive_head);
 
-    int GetH() const { return camera->GetH(); }
-    int GetW() const { return camera->GetW(); }
+    __host__ __device__ int GetH() const { return camera->GetH(); }
+    __host__ __device__ int GetW() const { return camera->GetW(); }
 
-    Camera* GetCamera() { return camera; }
+    __host__ __device__ Camera* GetCamera() { return camera; }
 
     void Write() const;
 };
@@ -75,7 +75,7 @@ Raytracer::Raytracer() {
     camera = new Camera;
 }
 
-int Raytracer::TraceRay(Ray& in, Ray& refl, Ray& refr)
+__device__ int Raytracer::TraceRay(Ray& in, Ray& refl, Ray& refr)
 {
     in.visited = true;
     if (in.depth > MAX_RAYTRACING_DEP) {
@@ -118,7 +118,7 @@ int Raytracer::TraceRay(Ray& in, Ray& refl, Ray& refr)
     return ret;
 }
 
-Color Raytracer::CalnDiffusion(const CollidePrimitive& collide_primitive)
+__device__ Color Raytracer::CalnDiffusion(const CollidePrimitive& collide_primitive)
 {
     Primitive* primitive = collide_primitive.collide_primitive;
     Color color = primitive->GetMaterial()->color;
@@ -160,7 +160,7 @@ Color Raytracer::CalnDiffusion(const CollidePrimitive& collide_primitive)
     return ret;
 }
 
-bool Raytracer::CalnReflection(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray)
+__device__ bool Raytracer::CalnReflection(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray)
 {
     Vector3 ray_V = in_V.Reflect( collide_primitive.N );
     Primitive* primitive = collide_primitive.collide_primitive;
@@ -199,9 +199,8 @@ bool Raytracer::CalnReflection(const CollidePrimitive& collide_primitive, const 
         // }
 
         // ADD BLUR
-        auto xy = primitive->GetMaterial()->blur->GetXY();
-        auto& x = xy.first;
-        auto& y = xy.second;
+        float x, y;
+        primitive->GetMaterial()->blur->GetXY(x, y);
         auto fuzzy_V = ray_V + baseX * x + baseY * y;
 
         ray.O = collide_primitive.C;
@@ -211,7 +210,7 @@ bool Raytracer::CalnReflection(const CollidePrimitive& collide_primitive, const 
     }
 }
 
-bool Raytracer::CalnRefraction(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray)
+__device__ bool Raytracer::CalnRefraction(const CollidePrimitive& collide_primitive, const Vector3& in_V, Ray& ray)
 {
     Primitive* primitive = collide_primitive.collide_primitive;
     float n = primitive->GetMaterial()->rindex;

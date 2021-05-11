@@ -19,20 +19,20 @@ public:
 
     __host__ __device__ Vector3() : x(0), y(0), z(0) {}
     __host__ __device__ explicit Vector3( float X , float Y , float Z ) : x( X ) , y( Y ) , z( Z ) {}
-    __host__ __device__ ~Vector3() {}
+    __host__ __device__ virtual ~Vector3() {}
 
-    friend Vector3 operator + ( const Vector3& , const Vector3& );
-    friend Vector3 operator - ( const Vector3& , const Vector3& );
-    friend Vector3 operator * ( const Vector3& , const float& );
-    friend Vector3 operator * ( const float& , const Vector3& );
-    friend Vector3 operator / ( const Vector3& , const float& );
-    friend Vector3 operator * ( const Vector3& , const Vector3& ); //cross product
-    friend Vector3& operator += ( Vector3& , const Vector3& );
-    friend Vector3& operator -= ( Vector3& , const Vector3& );
-    friend Vector3& operator *= ( Vector3& , const float& );
-    friend Vector3& operator /= ( Vector3& , const float& );
-    friend Vector3& operator *= ( Vector3& , const Vector3& ); //cross product
-    friend Vector3 operator - ( const Vector3& );
+    friend __host__ __device__ Vector3 operator + ( const Vector3& , const Vector3& );
+    friend __host__ __device__ Vector3 operator - ( const Vector3& , const Vector3& );
+    friend __host__ __device__ Vector3 operator * ( const Vector3& , const float& );
+    friend __host__ __device__ Vector3 operator * ( const float& , const Vector3& );
+    friend __host__ __device__ Vector3 operator / ( const Vector3& , const float& );
+    friend __host__ __device__ Vector3 operator * ( const Vector3& , const Vector3& ); //cross product
+    friend __host__ __device__ Vector3& operator += ( Vector3& , const Vector3& );
+    friend __host__ __device__ Vector3& operator -= ( Vector3& , const Vector3& );
+    friend __host__ __device__ Vector3& operator *= ( Vector3& , const float& );
+    friend __host__ __device__ Vector3& operator /= ( Vector3& , const float& );
+    friend __host__ __device__ Vector3& operator *= ( Vector3& , const Vector3& ); //cross product
+    friend __host__ __device__ Vector3 operator - ( const Vector3& );
 
     __host__ __device__ float Dot( const Vector3& ) const;
     __host__ __device__ float Module2() const;
@@ -52,7 +52,7 @@ public:
 
     __host__ __device__ float& GetCoord(int axis);
 
-    __host__ __device__ void Input(std::stringstream& fin);
+    void Input(std::stringstream& fin);
     __host__ __device__ void AssRandomVector();
 };
 
@@ -208,7 +208,7 @@ __host__ __device__ bool Vector3::IsZeroVector() const
     return fabs( x ) < EPS && fabs( y ) < EPS && fabs( z ) < EPS;
 }
 
-__host__ __device__ void Vector3::Input( std::stringstream& fin )
+void Vector3::Input( std::stringstream& fin )
 {
     fin >> x >> y >> z;
 }

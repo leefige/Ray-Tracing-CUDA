@@ -35,3 +35,5 @@ find_package(Threads REQUIRED)
 add_executable(${PROJECT_NAME} ${SRCS})
 target_link_libraries(raytracing Threads::Threads)
 target_link_libraries(${PROJECT_NAME} stdc++fs)
+
+set_property(TARGET raytracing PROPERTY CUDA_ARCHITECTURES 50 61 72)

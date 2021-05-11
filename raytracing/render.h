@@ -4,26 +4,27 @@
 #include <vector>
 
 #include "color.h"
-#include "ray.h"
-#include "vector3.h"
-#include "raytracer.h"
+// #include "ray.h"
+// #include "vector3.h"
+// #include "raytracer.h"
 
 #include "cutils.h"
 
 namespace cg
 {
 
+#ifndef TESTING
 __global__ void Render(Raytracer& tracer, const int max_i, const int max_j)
+#else
+__global__ void Render(Color* fb, const int max_i, const int max_j)
+#endif
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
 
-    if((i >= max_x) || (j >= max_y)) {
+    if((i >= max_i) || (j >= max_j)) {
         return;
     }
-
-    Color pixel(float(i) / max_i, float(j) / max_j, 0.2);
-    Camera* camera = tracer.GetCamera();
 
 #ifndef TESTING
     Color pixel;
@@ -74,8 +75,12 @@ __global__ void Render(Raytracer& tracer, const int max_i, const int max_j)
             pixel += res.myColor / pow((NUM_RESAMPLE * 2 + 1), 2);
         }
     } /* for */
-#endif
     camera->SetColor(i, j, pixel);
+#else
+    Color pixel(float(i) / max_i, float(j) / max_j, 0.2);
+    fb[i * max_j + j] = pixel;
+#endif
+
 }
 
 

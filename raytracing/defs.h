@@ -7,14 +7,16 @@ namespace cg
 {
 
 /* random float in [0, 1) */
-inline float preciseRan()
+__device__ inline float preciseRan()
 {
-    return float( rand() % RAND_MAX ) / RAND_MAX;
+    // TODO
+    return float( 100 % RAND_MAX ) / RAND_MAX;
 }
 
-inline float ran()
+__device__ inline float ran()
 {
-    return float( rand() % 32768 ) / 32768;
+    // TODO
+    return float( 400 % 32768 ) / 32768;
 }
 
 constexpr float EPS = 1e-6;

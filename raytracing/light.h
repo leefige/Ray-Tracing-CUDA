@@ -27,19 +27,19 @@ public:
     Light();
     virtual ~Light() {}
 
-    int GetSample() { return sample; }
-    Color GetColor() { return color; }
-    Light* GetNext() { return next; }
-    void SetNext( Light* light ) { next = light; }
+    __device__ int GetSample() { return sample; }
+    __device__ Color GetColor() { return color; }
+    __device__ Light* GetNext() { return next; }
+    __device__ void SetNext( Light* light ) { next = light; }
 
-    virtual bool IsPointLight() = 0;
+    __device__ virtual bool IsPointLight() = 0;
     virtual void Input( std::string , std::stringstream& );
-    virtual Vector3 GetO() = 0;
-    virtual float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) = 0;
-    virtual Primitive* CreateLightPrimitive() = 0;
+    __device__ virtual Vector3 GetO() = 0;
+    __device__ virtual float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) = 0;
+    __device__ virtual Primitive* CreateLightPrimitive() = 0;
 
 protected:
-    virtual Vector3 GetRandPointLight(const Vector3& crashPoint) = 0;
+    __device__ virtual Vector3 GetRandPointLight(const Vector3& crashPoint) = 0;
 };
 
 class PointLight : public Light
@@ -49,14 +49,14 @@ public:
     PointLight() : Light() {}
     ~PointLight() {}
 
-    bool IsPointLight() { return true; }
-    Vector3 GetO() { return O; }
+    __device__ bool IsPointLight() { return true; }
+    __device__ Vector3 GetO() { return O; }
     void Input( std::string , std::stringstream& );
-    float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
-    Primitive* CreateLightPrimitive() { return nullptr; }
+    __device__ float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
+    __device__ Primitive* CreateLightPrimitive() { return nullptr; }
 
 protected:
-    virtual Vector3 GetRandPointLight(const Vector3& crashPoint) { return O; }
+    __device__ virtual Vector3 GetRandPointLight(const Vector3& crashPoint) { return O; }
 };
 
 class SquareLight : public Light
@@ -67,14 +67,14 @@ public:
     SquareLight() : Light() {}
     ~SquareLight() {}
 
-    bool IsPointLight() { return false; }
-    Vector3 GetO() { return O; }
+    __device__ bool IsPointLight() { return false; }
+    __device__ Vector3 GetO() { return O; }
     void Input( std::string , std::stringstream& );
-    float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
-    Primitive* CreateLightPrimitive();
+    __device__ float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
+    __device__ Primitive* CreateLightPrimitive();
 
 protected:
-    virtual Vector3 GetRandPointLight(const Vector3& crashPoint);
+    __device__ virtual Vector3 GetRandPointLight(const Vector3& crashPoint);
 };
 
 class SphereLight : public Light
@@ -85,14 +85,14 @@ public:
     SphereLight() : Light(), R(0) {}
     ~SphereLight() {}
 
-    bool IsPointLight() { return false; }
-    Vector3 GetO() { return O; }
+    __device__ bool IsPointLight() { return false; }
+    __device__ Vector3 GetO() { return O; }
     void Input( std::string , std::stringstream& );
-    float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
-    Primitive* CreateLightPrimitive();
+    __device__ float CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality );
+    __device__ Primitive* CreateLightPrimitive();
 
 protected:
-    virtual Vector3 GetRandPointLight(const Vector3& crashPoint);
+    __device__ __device__ virtual Vector3 GetRandPointLight(const Vector3& crashPoint);
 };
 
 // =======================================================
@@ -114,7 +114,7 @@ void PointLight::Input( std::string var , std::stringstream& fin ) {
     Light::Input( var , fin );
 }
 
-float PointLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
+__device__ float PointLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
     /* For point light, shade_quality is of no use: we don't need to sample. */
 
     // light ray from diffuse point to light source
@@ -141,7 +141,7 @@ void SquareLight::Input( std::string var , std::stringstream& fin ) {
     Light::Input( var , fin );
 }
 
-float SquareLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
+__device__ float SquareLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
     int shade = 0;
 
     // TODO: NEED TO IMPLEMENT
@@ -172,14 +172,14 @@ float SquareLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_
     return float(shade) / shade_quality;
 }
 
-Primitive* SquareLight::CreateLightPrimitive()
+__device__ Primitive* SquareLight::CreateLightPrimitive()
 {
     PlaneAreaLightPrimitive* res = new PlaneAreaLightPrimitive(O, Dx, Dy, color);
     lightPrimitive = res;
     return res;
 }
 
-Vector3 SquareLight::GetRandPointLight(const Vector3& crashPoint)
+__device__ Vector3 SquareLight::GetRandPointLight(const Vector3& crashPoint)
 {
     return O + Dx * (2 * ran() - 1) + Dy * (2 * ran() - 1);
 }
@@ -192,7 +192,7 @@ void SphereLight::Input( std::string var , std::stringstream& fin ) {
 
 // ==========================================
 
-float SphereLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
+__device__ float SphereLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_quality ) {
     int shade = 0;
 
     // TODO: NEED TO IMPLEMENT
@@ -224,14 +224,14 @@ float SphereLight::CalnShade( Vector3 C , Primitive* primitive_head , int shade_
     return float(shade) / shade_quality;
 }
 
-Primitive* SphereLight::CreateLightPrimitive()
+__device__ Primitive* SphereLight::CreateLightPrimitive()
 {
     SphereLightPrimitive* res = new SphereLightPrimitive(O, R, color);
     lightPrimitive = res;
     return res;
 }
 
-Vector3 SphereLight::GetRandPointLight(const Vector3& crashPoint)
+__device__ Vector3 SphereLight::GetRandPointLight(const Vector3& crashPoint)
 {
     Vector3 toCrash = crashPoint - O;
     Vector3 radiusV = toCrash.GetUnitVector() * R;

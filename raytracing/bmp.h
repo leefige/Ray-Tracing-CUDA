@@ -8,6 +8,7 @@
 #include <string>
 #include <cmath>
 
+#include "defs.h"
 #include "color.h"
 
 namespace cg
